@@ -1,0 +1,10 @@
+# node modules
+node_modules/
+
+# OS/IDE junk
+.DS_Store
+.vscode/
+
+# Expo
+.expo/
+.expo-shared/
