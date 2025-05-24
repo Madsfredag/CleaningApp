@@ -6,23 +6,40 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase/firebaseConfig";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { StackParamList } from "../types/Navigation";
+import { getUserHouseholdId } from "../firestore/HouseholdService";
 
-export default function LoginScreen({ onSwitch }: { onSwitch: () => void }) {
+type Props = NativeStackScreenProps<StackParamList, "Login">;
+
+export default function LoginScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      setLoading(true);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const uid = userCredential.user.uid;
+      const householdId = await getUserHouseholdId(uid);
+      navigation.replace(householdId ? "Home" : "Household");
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "Unknown login error";
       setError(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -46,10 +63,18 @@ export default function LoginScreen({ onSwitch }: { onSwitch: () => void }) {
           onChangeText={setPassword}
         />
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Log In</Text>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Log In</Text>
+          )}
         </TouchableOpacity>
-        <TouchableOpacity onPress={onSwitch}>
+        <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
           <Text style={styles.link}>Don’t have an account? Sign up</Text>
         </TouchableOpacity>
       </SafeAreaView>

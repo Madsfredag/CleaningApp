@@ -14,7 +14,10 @@
     "jsEngine": "jsc",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.madsfredag.cleaningapp"
+      "bundleIdentifier": "com.madsfredag.cleaningapp",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses the camera to scan QR codes to join a household."
+      }
     },
     "android": {
       "adaptiveIcon": {

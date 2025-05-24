@@ -1,3 +1,4 @@
+// Same as LoginScreen, but replaces signIn with createUserWithEmailAndPassword
 import React, { useState } from "react";
 import {
   View,
@@ -6,23 +7,40 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase/firebaseConfig";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { StackParamList } from "../types/Navigation";
+import { getUserHouseholdId } from "../firestore/HouseholdService";
 
-export default function SignupScreen({ onSwitch }: { onSwitch: () => void }) {
+type Props = NativeStackScreenProps<StackParamList, "Signup">;
+
+export default function SignupScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSignup = async () => {
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      setLoading(true);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const uid = userCredential.user.uid;
+      const householdId = await getUserHouseholdId(uid);
+      navigation.replace(householdId ? "Home" : "Household");
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "Unknown signup error";
       setError(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -46,10 +64,18 @@ export default function SignupScreen({ onSwitch }: { onSwitch: () => void }) {
           onChangeText={setPassword}
         />
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <TouchableOpacity style={styles.button} onPress={handleSignup}>
-          <Text style={styles.buttonText}>Sign Up</Text>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={handleSignup}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Sign Up</Text>
+          )}
         </TouchableOpacity>
-        <TouchableOpacity onPress={onSwitch}>
+        <TouchableOpacity onPress={() => navigation.navigate("Login")}>
           <Text style={styles.link}>Already have an account? Log in</Text>
         </TouchableOpacity>
       </SafeAreaView>
