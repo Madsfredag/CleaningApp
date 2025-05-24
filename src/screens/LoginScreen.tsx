@@ -31,9 +31,12 @@ export default function LoginScreen({ navigation }: Props) {
         email,
         password
       );
+
+      // ✅ Wait for household data before navigating
       const uid = userCredential.user.uid;
       const householdId = await getUserHouseholdId(uid);
-      navigation.replace(householdId ? "Home" : "Household");
+
+      navigation.replace(householdId ? "Home" : "JoinHousehold");
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "Unknown login error";

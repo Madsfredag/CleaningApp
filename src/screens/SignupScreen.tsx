@@ -1,4 +1,3 @@
-// Same as LoginScreen, but replaces signIn with createUserWithEmailAndPassword
 import React, { useState } from "react";
 import {
   View,
@@ -11,9 +10,11 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../firebase/firebaseConfig";
+import { auth, db } from "../firebase/firebaseConfig";
+import { doc, setDoc } from "firebase/firestore";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { StackParamList } from "../types/Navigation";
+import { AppUser } from "../types/User";
 import { getUserHouseholdId } from "../firestore/HouseholdService";
 
 type Props = NativeStackScreenProps<StackParamList, "Signup">;
@@ -21,10 +22,13 @@ type Props = NativeStackScreenProps<StackParamList, "Signup">;
 export default function SignupScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSignup = async () => {
+    if (!username.trim()) return setError("Username is required");
+
     try {
       setLoading(true);
       const userCredential = await createUserWithEmailAndPassword(
@@ -32,9 +36,20 @@ export default function SignupScreen({ navigation }: Props) {
         email,
         password
       );
+
       const uid = userCredential.user.uid;
+
+      const newUser: AppUser = {
+        id: uid,
+        email,
+        displayName: username.trim(),
+        createdAt: new Date(),
+      };
+
+      await setDoc(doc(db, "users", uid), newUser);
+
       const householdId = await getUserHouseholdId(uid);
-      navigation.replace(householdId ? "Home" : "Household");
+      navigation.replace(householdId ? "Home" : "JoinHousehold");
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "Unknown signup error";
@@ -48,6 +63,7 @@ export default function SignupScreen({ navigation }: Props) {
     <LinearGradient colors={["#c2e9fb", "#a1c4fd"]} style={styles.gradient}>
       <SafeAreaView style={styles.container}>
         <Text style={styles.title}>Create Account</Text>
+
         <TextInput
           style={styles.input}
           placeholder="Email"
@@ -63,7 +79,16 @@ export default function SignupScreen({ navigation }: Props) {
           value={password}
           onChangeText={setPassword}
         />
+        <TextInput
+          style={styles.input}
+          placeholder="Username"
+          placeholderTextColor="#555"
+          value={username}
+          onChangeText={setUsername}
+        />
+
         {error ? <Text style={styles.error}>{error}</Text> : null}
+
         <TouchableOpacity
           style={styles.button}
           onPress={handleSignup}
@@ -75,6 +100,7 @@ export default function SignupScreen({ navigation }: Props) {
             <Text style={styles.buttonText}>Sign Up</Text>
           )}
         </TouchableOpacity>
+
         <TouchableOpacity onPress={() => navigation.navigate("Login")}>
           <Text style={styles.link}>Already have an account? Log in</Text>
         </TouchableOpacity>

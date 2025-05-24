@@ -10,8 +10,8 @@ import {
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
-import { joinHouseholdByCode } from "../firestore/HouseholdService";
 import { Ionicons } from "@expo/vector-icons";
+import { joinHouseholdSafely } from "../utils/joinHouseholdSafely";
 
 export default function JoinScannerScreen() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -26,7 +26,7 @@ export default function JoinScannerScreen() {
     }
   }, []);
 
-  const handleScanned = ({ data }: { data: string }) => {
+  const handleScanned = async ({ data }: { data: string }) => {
     if (lock.current || !user) return;
 
     lock.current = true;
@@ -48,32 +48,19 @@ export default function JoinScannerScreen() {
       return;
     }
 
-    joinHouseholdByCode(code.toUpperCase(), user.uid)
-      .then((joined) => {
-        if (joined) {
-          Alert.alert("Success", "You joined the household.", [
-            {
-              text: "OK",
-              onPress: () => {
-                navigation.navigate("Home" as never);
-              },
+    try {
+      const joined = await joinHouseholdSafely(code.toUpperCase(), user.uid);
+      if (joined) {
+        Alert.alert("Success", "You joined the household.", [
+          {
+            text: "OK",
+            onPress: () => {
+              navigation.navigate("Home" as never);
             },
-          ]);
-        } else {
-          Alert.alert("Not Found", "No household matches this code.", [
-            {
-              text: "OK",
-              onPress: () => {
-                lock.current = false;
-                setScanned(false);
-              },
-            },
-          ]);
-        }
-      })
-      .catch((error) => {
-        console.error(error);
-        Alert.alert("Error", "Could not join household.", [
+          },
+        ]);
+      } else {
+        Alert.alert("Failed", "Could not join the household.", [
           {
             text: "OK",
             onPress: () => {
@@ -82,7 +69,19 @@ export default function JoinScannerScreen() {
             },
           },
         ]);
-      });
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Something went wrong.", [
+        {
+          text: "OK",
+          onPress: () => {
+            lock.current = false;
+            setScanned(false);
+          },
+        },
+      ]);
+    }
   };
 
   if (!permission) return <View />;
