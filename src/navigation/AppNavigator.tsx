@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuth } from "../context/AuthContext";
 import LoginScreen from "../screens/LoginScreen";
 import SignupScreen from "../screens/SignupScreen";
-import JoinHouseholdScreen from "../screens/HouseholdScreen";
+import JoinHouseholdScreen from "../screens/JoinHouseholdScreen";
 import HomeScreen from "../screens/HomeScreen";
 import JoinScannerScreen from "../screens/JoinScannerScreen";
 import { StackParamList } from "../types/Navigation";
