@@ -7,7 +7,7 @@ import {
   joinHouseholdByCode,
 } from "../firestore/HouseholdService";
 
-export default function HouseholdScreen({ navigation }: any) {
+export default function JoinHouseholdScreen({ navigation }: any) {
   const { user } = useAuth();
   const [name, setName] = useState("");
   const [code, setCode] = useState("");

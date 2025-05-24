@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuth } from "../context/AuthContext";
 import LoginScreen from "../screens/LoginScreen";
 import SignupScreen from "../screens/SignupScreen";
-import HouseholdScreen from "../screens/HouseholdScreen";
+import JoinHouseholdScreen from "../screens/HouseholdScreen";
 import HomeScreen from "../screens/HomeScreen";
 import JoinScannerScreen from "../screens/JoinScannerScreen";
 import { StackParamList } from "../types/Navigation";
@@ -42,7 +42,7 @@ export default function AppNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Signup" component={SignupScreen} />
-        <Stack.Screen name="Household" component={HouseholdScreen} />
+        <Stack.Screen name="Household" component={JoinHouseholdScreen} />
         <Stack.Screen name="JoinScanner" component={JoinScannerScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
       </Stack.Navigator>
