@@ -7,7 +7,7 @@ import {
   // @ts-ignore
   getReactNativePersistence,
 } from 'firebase/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyBDdWlYX8FPI0Vc_Z5iTSWqYBe0UTbM3Ks',
@@ -21,16 +21,11 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// ✅ Lazy initialization guard
-let auth: Auth;
 
-try {
-  auth = getAuth(app);
-} catch {
-  auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(AsyncStorage),
-  });
-}
+
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+});
 
 const db = getFirestore(app);
 

@@ -36,7 +36,7 @@ export default function LoginScreen({ navigation }: Props) {
       const uid = userCredential.user.uid;
       const householdId = await getUserHouseholdId(uid);
 
-      navigation.replace(householdId ? "Home" : "JoinHousehold");
+      navigation.replace(householdId ? "MainTabs" : "JoinHousehold");
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "Unknown login error";

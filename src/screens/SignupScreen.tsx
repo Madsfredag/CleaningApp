@@ -49,7 +49,7 @@ export default function SignupScreen({ navigation }: Props) {
       await setDoc(doc(db, "users", uid), newUser);
 
       const householdId = await getUserHouseholdId(uid);
-      navigation.replace(householdId ? "Home" : "JoinHousehold");
+      navigation.replace(householdId ? "MainTabs" : "JoinHousehold");
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "Unknown signup error";

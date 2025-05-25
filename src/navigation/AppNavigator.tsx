@@ -1,3 +1,4 @@
+// src/navigation/AppNavigator.tsx
 import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -15,21 +16,27 @@ const Stack = createNativeStackNavigator<StackParamList>();
 
 export default function AppNavigator() {
   const { user } = useAuth();
-  const [hasHousehold, setHasHousehold] = useState<boolean | null>(null);
+  const [initialRoute, setInitialRoute] = useState<keyof StackParamList | null>(
+    null
+  );
 
   useEffect(() => {
-    const check = async () => {
+    const checkInitialRoute = async () => {
       if (!user) {
-        setHasHousehold(false);
+        setInitialRoute("Login");
         return;
       }
       const householdId = await getUserHouseholdId(user.uid);
-      setHasHousehold(!!householdId);
+      if (householdId) {
+        setInitialRoute("MainTabs");
+      } else {
+        setInitialRoute("JoinHousehold");
+      }
     };
-    check();
+    checkInitialRoute();
   }, [user]);
 
-  if (user === undefined || hasHousehold === null) {
+  if (!initialRoute) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
@@ -39,17 +46,15 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {/* Public screens */}
+      <Stack.Navigator
+        screenOptions={{ headerShown: false }}
+        initialRouteName={initialRoute}
+      >
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Signup" component={SignupScreen} />
-
-        {/* Join flow */}
         <Stack.Screen name="JoinHousehold" component={JoinHouseholdScreen} />
         <Stack.Screen name="JoinScanner" component={JoinScannerScreen} />
-
-        {/* Main app flow with tab navigator */}
-        <Stack.Screen name="Home" component={BottomTabs} />
+        <Stack.Screen name="MainTabs" component={BottomTabs} />
       </Stack.Navigator>
     </NavigationContainer>
   );

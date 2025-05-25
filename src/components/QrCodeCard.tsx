@@ -36,7 +36,9 @@ export default function QrCodeCard({ household }: Props) {
         style={styles.scanButton}
         onPress={() => navigation.navigate("JoinScanner" as never)}
       >
-        <Text style={styles.scanButtonText}>Scan QR to Join</Text>
+        <Text style={styles.scanButtonText}>
+          Scan QR to Join a new Household
+        </Text>
       </TouchableOpacity>
     </View>
   );

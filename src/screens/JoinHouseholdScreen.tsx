@@ -40,7 +40,7 @@ export default function JoinHouseholdScreen({ navigation }: any) {
       user.uid
     );
     if (householdId) {
-      navigation.replace("Home");
+      navigation.replace("MainTabs");
     } else {
       setError("Household not found");
     }
@@ -79,7 +79,7 @@ export default function JoinHouseholdScreen({ navigation }: any) {
           <QRCode value={`cleanapp://join?code=${createdCode}`} size={200} />
           <Button
             title="Continue to Home"
-            onPress={() => navigation.navigate("Home")}
+            onPress={() => navigation.navigate("MainTabs")}
           />
         </>
       )}

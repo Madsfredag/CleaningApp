@@ -1,103 +1,127 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+// components/TaskCard.tsx
+import React, { useState } from "react";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Task } from "../types/Task";
 import { AppUser } from "../types/User";
+import { Ionicons } from "@expo/vector-icons";
+import TaskDetailsModal from "./TaskDetailsModal";
 
 interface Props {
   task: Task;
   members: AppUser[];
   onEdit: () => void;
   onDelete: () => void;
+  onToggleComplete: () => void;
 }
 
-export default function TaskCard({ task, members, onEdit, onDelete }: Props) {
-  const assignedUser = members.find((u) => u.id === task.assignedTo);
+export default function TaskCard({
+  task,
+  members,
+  onEdit,
+  onDelete,
+  onToggleComplete,
+}: Props) {
+  const [detailsVisible, setDetailsVisible] = useState(false);
+  const assignedUser = members.find((m) => m.id === task.assignedTo);
 
-  const repeatText = task.repeat
-    ? task.repeat.frequency === "once"
-      ? "One-time task"
-      : `Every ${task.repeat.interval} ${task.repeat.frequency}${
-          task.repeat.interval > 1 ? "s" : ""
-        }`
-    : "One-time task";
+  const priorityColor =
+    task.priority === "high"
+      ? "#ff6b6b"
+      : task.priority === "medium"
+      ? "#ffbe3b"
+      : task.priority === "low"
+      ? "#2ed573"
+      : "#ccc";
 
   return (
-    <View style={styles.card}>
-      <View style={styles.header}>
-        <Text style={[styles.title, task.completed && styles.completed]}>
-          {task.title}
-        </Text>
-        <Text style={styles.assigned}>
-          {assignedUser ? assignedUser.displayName : "Unassigned"}
-        </Text>
-      </View>
-      <Text style={styles.repeat}>{repeatText}</Text>
+    <>
+      <TouchableOpacity
+        style={[styles.card, { borderLeftColor: priorityColor }]}
+        onPress={() => setDetailsVisible(true)}
+        activeOpacity={0.9}
+      >
+        <TouchableOpacity onPress={onToggleComplete} style={styles.checkbox}>
+          <Ionicons
+            name={task.completed ? "checkmark-circle" : "ellipse-outline"}
+            size={24}
+            color={task.completed ? "#28a745" : "#ccc"}
+          />
+        </TouchableOpacity>
 
-      <View style={styles.buttonRow}>
-        <TouchableOpacity style={styles.editBtn} onPress={onEdit}>
-          <Text style={styles.btnText}>Edit</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.deleteBtn} onPress={onDelete}>
-          <Text style={styles.btnText}>Delete</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+        <View style={styles.info}>
+          <Text style={[styles.title, task.completed && styles.completedText]}>
+            {task.title}
+          </Text>
+          <Text style={styles.assigned}>
+            Assigned to:{" "}
+            {assignedUser?.displayName || (
+              <Text style={{ fontStyle: "italic" }}>Anyone</Text>
+            )}
+          </Text>
+        </View>
+
+        <View style={styles.actions}>
+          <TouchableOpacity onPress={onEdit} style={styles.editBtn}>
+            <Ionicons name="create-outline" size={20} color="#333" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onDelete} style={styles.deleteBtn}>
+            <Ionicons name="trash-outline" size={20} color="#d90429" />
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+
+      <TaskDetailsModal
+        visible={detailsVisible}
+        onClose={() => setDetailsVisible(false)}
+        task={task}
+        assignedUser={assignedUser || null}
+      />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#ffffffcc",
+    backgroundColor: "#fff",
     borderRadius: 12,
-    padding: 14,
+    padding: 12,
     marginBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
     shadowColor: "#000",
     shadowOpacity: 0.05,
+    shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
+    borderLeftWidth: 6,
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 4,
+  checkbox: {
+    marginRight: 12,
+  },
+  info: {
+    flex: 1,
   },
   title: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "500",
     color: "#2b2d42",
   },
-  completed: {
+  assigned: {
+    fontSize: 12,
+    color: "#777",
+    marginTop: 2,
+  },
+  completedText: {
     textDecorationLine: "line-through",
     color: "#aaa",
   },
-  assigned: {
-    fontSize: 14,
-    color: "#007AFF",
-  },
-  repeat: {
-    fontSize: 13,
-    color: "#555",
-    marginBottom: 10,
-  },
-  buttonRow: {
+  actions: {
     flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 10,
+    gap: 8,
   },
   editBtn: {
-    backgroundColor: "#007AFF",
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 8,
+    marginHorizontal: 6,
   },
   deleteBtn: {
-    backgroundColor: "#d90429",
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-  },
-  btnText: {
-    color: "#fff",
-    fontWeight: "500",
+    marginHorizontal: 6,
   },
 });

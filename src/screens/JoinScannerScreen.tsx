@@ -55,7 +55,7 @@ export default function JoinScannerScreen() {
           {
             text: "OK",
             onPress: () => {
-              navigation.navigate("Home" as never);
+              navigation.navigate("MainTabs" as never);
             },
           },
         ]);

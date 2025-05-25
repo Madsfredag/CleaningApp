@@ -21,6 +21,7 @@ import {
   getDoc,
   getDocs,
   deleteDoc,
+  updateDoc,
 } from "firebase/firestore";
 import MembersCard from "../components/MembersCard";
 import TaskCard from "../components/TaskCard";
@@ -70,7 +71,20 @@ export default function HouseholdScreen() {
       const loadedTasks = snap.docs.map(
         (doc) => ({ id: doc.id, ...doc.data() } as Task)
       );
-      setTasks(loadedTasks);
+
+      const priorityOrder: Record<NonNullable<Task["priority"]>, number> = {
+        high: 0,
+        medium: 1,
+        low: 2,
+      };
+
+      const sorted = [...loadedTasks].sort((a, b) => {
+        const aRank = a.priority ? priorityOrder[a.priority] : 3;
+        const bRank = b.priority ? priorityOrder[b.priority] : 3;
+        return aRank - bRank;
+      });
+
+      setTasks(sorted);
     });
 
     const unsubHousehold = onSnapshot(
@@ -123,6 +137,12 @@ export default function HouseholdScreen() {
     ]);
   };
 
+  const handleToggleComplete = async (task: Task) => {
+    if (!household) return;
+    const taskRef = doc(db, "households", household.id, "tasks", task.id);
+    await updateDoc(taskRef, { completed: !task.completed });
+  };
+
   if (!user || !household) {
     return (
       <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
@@ -155,6 +175,7 @@ export default function HouseholdScreen() {
                   members={members}
                   onEdit={() => handleEdit(task)}
                   onDelete={() => handleDelete(task.id)}
+                  onToggleComplete={() => handleToggleComplete(task)}
                 />
               ))
             )}
