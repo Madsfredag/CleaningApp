@@ -1,4 +1,3 @@
-// components/TaskCard.tsx
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Task } from "../types/Task";
@@ -33,6 +32,14 @@ export default function TaskCard({
       ? "#2ed573"
       : "#ccc";
 
+  const formattedDueDate = (
+    task.dueDate instanceof Date ? task.dueDate : (task.dueDate as any).toDate()
+  ).toLocaleDateString("da-DK", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+
   return (
     <>
       <TouchableOpacity
@@ -52,6 +59,7 @@ export default function TaskCard({
           <Text style={[styles.title, task.completed && styles.completedText]}>
             {task.title}
           </Text>
+          <Text style={styles.meta}>Due: {formattedDueDate}</Text>
           <Text style={styles.assigned}>
             Assigned to:{" "}
             {assignedUser?.displayName || (
@@ -104,6 +112,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
     color: "#2b2d42",
+  },
+  meta: {
+    fontSize: 12,
+    color: "#555",
+    marginTop: 2,
   },
   assigned: {
     fontSize: 12,

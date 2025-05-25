@@ -10,7 +10,9 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import {
   doc,
   addDoc,
@@ -18,13 +20,13 @@ import {
   deleteDoc,
   collection,
 } from "firebase/firestore";
+import { Timestamp } from "firebase/firestore";
 import { db } from "../firebase/firebaseConfig";
 import { Household } from "../types/Household";
 import { Task, TaskRepeat, TaskPriority } from "../types/Task";
 import MemberPicker from "./MemberPicker";
 import RepeatSelector from "./RepeatSelector";
 import { AppUser } from "../types/User";
-import { Picker } from "@react-native-picker/picker";
 
 interface Props {
   visible: boolean;
@@ -33,6 +35,8 @@ interface Props {
   task: Task | null;
   members: AppUser[];
 }
+
+const PRIORITY_LEVELS: TaskPriority[] = ["low", "medium", "high"];
 
 export default function TaskModal({
   visible,
@@ -46,6 +50,8 @@ export default function TaskModal({
   const [repeat, setRepeat] = useState<TaskRepeat | null>(null);
   const [priority, setPriority] = useState<TaskPriority>("medium");
   const [details, setDetails] = useState("");
+  const [dueDate, setDueDate] = useState<Date>(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
     if (task) {
@@ -54,14 +60,23 @@ export default function TaskModal({
       setRepeat(task.repeat);
       setPriority(task.priority ?? "medium");
       setDetails(task.details ?? "");
+      const rawDate = task.dueDate;
+      setDueDate(
+        rawDate instanceof Date ? rawDate : (rawDate as Timestamp).toDate()
+      );
     } else {
-      setTitle("");
-      setAssignedTo(null);
-      setRepeat(null);
-      setPriority("medium");
-      setDetails("");
+      resetForm();
     }
   }, [task]);
+
+  const resetForm = () => {
+    setTitle("");
+    setAssignedTo(null);
+    setRepeat(null);
+    setPriority("medium");
+    setDetails("");
+    setDueDate(new Date());
+  };
 
   const handleSave = async () => {
     if (!title.trim()) return Alert.alert("Enter a task title");
@@ -72,6 +87,7 @@ export default function TaskModal({
       repeat,
       completed: task?.completed ?? false,
       createdAt: task?.createdAt ?? new Date(),
+      dueDate,
       householdId: household.id,
       priority,
       details: details.trim(),
@@ -85,6 +101,8 @@ export default function TaskModal({
     } else {
       await addDoc(collection(db, "households", household.id, "tasks"), data);
     }
+
+    resetForm();
     onClose();
   };
 
@@ -105,6 +123,15 @@ export default function TaskModal({
     ]);
   };
 
+  const handleDateChange = (_: any, selectedDate?: Date) => {
+    if (Platform.OS === "android") setShowDatePicker(false);
+    if (selectedDate) setDueDate(selectedDate);
+  };
+
+  const toggleDatePicker = () => {
+    setShowDatePicker((prev) => !prev);
+  };
+
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <KeyboardAvoidingView
@@ -112,17 +139,39 @@ export default function TaskModal({
         style={styles.overlay}
       >
         <View style={styles.modal}>
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
+          <ScrollView contentContainerStyle={styles.scrollContent}>
             <Text style={styles.title}>{task ? "Edit Task" : "New Task"}</Text>
+
+            <Text style={styles.label}>Task Title</Text>
             <TextInput
               placeholder="Task title"
               style={styles.input}
               value={title}
               onChangeText={setTitle}
             />
+
+            <Text style={styles.label}>Due Date</Text>
+            <TouchableOpacity
+              onPress={toggleDatePicker}
+              style={styles.dateDisplay}
+            >
+              <Text style={styles.dateText}>
+                {dueDate.toLocaleDateString("da-DK", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </Text>
+            </TouchableOpacity>
+            {showDatePicker && (
+              <DateTimePicker
+                value={dueDate}
+                mode="date"
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                onChange={handleDateChange}
+              />
+            )}
 
             <Text style={styles.label}>Assigned To</Text>
             <MemberPicker
@@ -133,22 +182,34 @@ export default function TaskModal({
             />
 
             <Text style={styles.label}>Priority</Text>
-            <Picker
-              selectedValue={priority}
-              onValueChange={(value) => setPriority(value)}
-              style={styles.picker}
-            >
-              <Picker.Item label="Low" value="low" />
-              <Picker.Item label="Medium" value="medium" />
-              <Picker.Item label="High" value="high" />
-            </Picker>
+            <View style={styles.priorityGroup}>
+              {PRIORITY_LEVELS.map((level) => (
+                <TouchableOpacity
+                  key={level}
+                  onPress={() => setPriority(level)}
+                  style={[
+                    styles.priorityOption,
+                    priority === level && styles.prioritySelected,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.priorityText,
+                      priority === level && styles.priorityTextSelected,
+                    ]}
+                  >
+                    {level.charAt(0).toUpperCase() + level.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
             <RepeatSelector value={repeat} onChange={setRepeat} />
 
             <Text style={styles.label}>Details</Text>
             <TextInput
               placeholder="Extra info..."
-              style={[styles.input, { height: 80 }]}
+              style={[styles.input, styles.textArea]}
               value={details}
               onChangeText={setDetails}
               multiline
@@ -178,8 +239,8 @@ const styles = StyleSheet.create({
   modal: {
     backgroundColor: "white",
     borderRadius: 20,
-    width: "90%",
-    maxHeight: "85%",
+    width: "92%",
+    maxHeight: "90%",
     shadowColor: "#000",
     shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 2 },
@@ -189,28 +250,64 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "600",
-    marginBottom: 10,
+    marginBottom: 16,
+    color: "#2b2d42",
+    textAlign: "center",
+  },
+  label: {
+    fontWeight: "600",
+    marginBottom: 4,
+    marginTop: 12,
+    color: "#333",
   },
   input: {
     backgroundColor: "#f0f0f0",
     padding: 10,
     borderRadius: 10,
-    marginBottom: 10,
+    marginBottom: 8,
   },
-  picker: {
-    backgroundColor: "#f0f0f0",
+  textArea: {
+    height: 80,
+    textAlignVertical: "top",
+  },
+  dateDisplay: {
+    backgroundColor: "#e4f0ff",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     borderRadius: 10,
     marginBottom: 10,
   },
-  label: {
-    fontWeight: "600",
-    marginBottom: 4,
+  dateText: {
+    fontSize: 16,
+    color: "#2b2d42",
+  },
+  priorityGroup: {
+    flexDirection: "row",
+    gap: 10,
+    marginVertical: 8,
+  },
+  priorityOption: {
+    flex: 1,
+    paddingVertical: 10,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  prioritySelected: {
+    backgroundColor: "#2b2d42",
+  },
+  priorityText: {
+    color: "#333",
+    fontWeight: "500",
+  },
+  priorityTextSelected: {
+    color: "white",
   },
   buttonRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 10,
+    marginTop: 20,
   },
 });

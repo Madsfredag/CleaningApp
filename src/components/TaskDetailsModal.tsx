@@ -17,6 +17,15 @@ export default function TaskDetailsModal({
   task,
   assignedUser,
 }: Props) {
+  const dueDate = (
+    task.dueDate instanceof Date ? task.dueDate : (task.dueDate as any).toDate()
+  ).toLocaleDateString("da-DK", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
   return (
     <Modal visible={visible} animationType="fade" transparent>
       <View style={styles.overlay}>
@@ -27,6 +36,9 @@ export default function TaskDetailsModal({
           <Text style={styles.value}>
             {assignedUser?.displayName || "Unassigned"}
           </Text>
+
+          <Text style={styles.label}>Due Date:</Text>
+          <Text style={styles.value}>{dueDate}</Text>
 
           <Text style={styles.label}>Details:</Text>
           <Text style={styles.value}>

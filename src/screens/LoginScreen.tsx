@@ -127,7 +127,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   link: {
-    color: "#6a4c93",
     textAlign: "center",
     marginTop: 20,
   },

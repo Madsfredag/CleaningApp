@@ -5,6 +5,7 @@ import HomeScreen from "../screens/HomeScreen";
 import HouseholdScreen from "../screens/HouseholdScreen";
 import ProfileScreen from "../screens/ProfileScreen"; // create this screen if needed
 import { Ionicons } from "@expo/vector-icons";
+import CompletedTasksScreen from "../screens/CompletedTasksScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -20,12 +21,14 @@ export default function BottomTabs() {
           if (route.name === "Home") iconName = "home";
           else if (route.name === "Household") iconName = "people";
           else if (route.name === "Profile") iconName = "person";
+          else if (route.name === "Completed") iconName = "checkmark-done";
           return <Ionicons name={iconName} size={size} color={color} />;
         },
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Household" component={HouseholdScreen} />
+      <Tab.Screen name="Completed" component={CompletedTasksScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );

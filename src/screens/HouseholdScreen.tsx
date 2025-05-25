@@ -22,6 +22,7 @@ import {
   getDocs,
   deleteDoc,
   updateDoc,
+  addDoc,
 } from "firebase/firestore";
 import MembersCard from "../components/MembersCard";
 import TaskCard from "../components/TaskCard";
@@ -30,6 +31,8 @@ import { Household } from "../types/Household";
 import { Task } from "../types/Task";
 import { AppUser } from "../types/User";
 import QrCodeCard from "../components/QrCodeCard";
+import { getNextDueDate } from "../utils/getNextDueDate";
+import { archiveOldCompletedTasks } from "../utils/archiveOldCompletedTasks";
 
 export default function HouseholdScreen() {
   const { user } = useAuth();
@@ -51,14 +54,18 @@ export default function HouseholdScreen() {
       if (!snap.empty) {
         const householdDoc = snap.docs[0];
         const householdData = householdDoc.data();
+        const householdId = householdDoc.id;
+
         setHousehold({
-          id: householdDoc.id,
+          id: householdId,
           name: householdData.name,
           code: householdData.code,
           ownerId: householdData.ownerId,
           members: householdData.members,
         });
-        setupListeners(householdDoc.id);
+
+        setupListeners(householdId);
+        await archiveOldCompletedTasks(householdId); // 🧹 Archive logic here
       }
     };
 
@@ -140,7 +147,32 @@ export default function HouseholdScreen() {
   const handleToggleComplete = async (task: Task) => {
     if (!household) return;
     const taskRef = doc(db, "households", household.id, "tasks", task.id);
-    await updateDoc(taskRef, { completed: !task.completed });
+    const newCompleted = !task.completed;
+    await updateDoc(taskRef, { completed: newCompleted });
+
+    if (newCompleted && task.repeat) {
+      const currentDue =
+        task.dueDate instanceof Date
+          ? task.dueDate
+          : (task.dueDate as any).toDate();
+      const nextDue = getNextDueDate(
+        currentDue,
+        task.repeat.frequency,
+        task.repeat.interval
+      );
+
+      await addDoc(collection(db, "households", household.id, "tasks"), {
+        title: task.title,
+        assignedTo: task.assignedTo,
+        repeat: task.repeat,
+        completed: false,
+        createdAt: new Date(),
+        dueDate: nextDue,
+        householdId: household.id,
+        priority: task.priority ?? "medium",
+        details: task.details ?? "",
+      });
+    }
   };
 
   if (!user || !household) {

@@ -4,143 +4,124 @@ import {
   Text,
   StyleSheet,
   ActivityIndicator,
-  FlatList,
   SafeAreaView,
+  ScrollView,
   Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase/firebaseConfig";
 import {
-  collectionGroup,
+  collection,
   doc,
   onSnapshot,
-  query,
-  where,
   updateDoc,
   deleteDoc,
   getDoc,
+  addDoc,
 } from "firebase/firestore";
 import TaskCard from "../components/TaskCard";
 import TaskModal from "../components/TaskModal";
 import { Task, TaskPriority } from "../types/Task";
 import { AppUser } from "../types/User";
+import { getNextDueDate } from "../utils/getNextDueDate";
 
-type FirestoreTask = Task & {
-  __path: string;
-  householdId: string;
+const priorityOrder: Record<NonNullable<TaskPriority>, number> = {
+  high: 0,
+  medium: 1,
+  low: 2,
 };
 
 export default function HomeScreen({ navigation }: any) {
   const { user } = useAuth();
-  const [tasks, setTasks] = useState<FirestoreTask[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [members, setMembers] = useState<AppUser[]>([]);
-  const [selectedTask, setSelectedTask] = useState<FirestoreTask | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
-      navigation.replace("Login");
-      return;
-    }
+    if (!user) return navigation.replace("Login");
 
-    const q1 = query(
-      collectionGroup(db, "tasks"),
-      where("assignedTo", "==", user.uid)
-    );
+    const fetchTasks = async () => {
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (!userDoc.exists()) return;
 
-    const q2 = query(
-      collectionGroup(db, "tasks"),
-      where("assignedTo", "==", null)
-    );
+      const userData = userDoc.data() as AppUser;
+      if (!userData.householdId) return;
 
-    const q3 = query(
-      collectionGroup(db, "tasks"),
-      where("assignedTo", "==", "")
-    );
+      const householdId = userData.householdId;
+      const taskRef = collection(db, "households", householdId, "tasks");
 
-    const unsubscribers = [q1, q2, q3].map((q) =>
-      onSnapshot(q, (snap) => {
-        const newTasks: FirestoreTask[] = snap.docs.map((docSnap) => {
-          const ref = docSnap.ref;
-          const householdId = ref.parent.parent?.id ?? "";
-          return {
-            id: docSnap.id,
-            ...(docSnap.data() as Omit<Task, "id">),
-            __path: ref.path,
-            householdId,
-          };
-        });
+      const unsub = onSnapshot(taskRef, (snap) => {
+        const loadedTasks: Task[] = snap.docs.map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as Omit<Task, "id">),
+          householdId,
+        }));
 
-        setTasks((prev) => {
-          const merged = [...prev, ...newTasks];
-          const deduped = Object.values(
-            merged.reduce((acc, task) => {
-              acc[task.id] = task;
-              return acc;
-            }, {} as Record<string, FirestoreTask>)
-          );
-
-          const priorityOrder: Record<NonNullable<TaskPriority>, number> = {
-            high: 0,
-            medium: 1,
-            low: 2,
-          };
-
-          return deduped.sort((a, b) => {
-            const aRank = a.priority ? priorityOrder[a.priority] : 3;
-            const bRank = b.priority ? priorityOrder[b.priority] : 3;
-            return aRank - bRank;
-          });
-        });
-
+        setTasks(loadedTasks);
         setLoading(false);
-      })
-    );
+      });
 
-    return () => {
-      unsubscribers.forEach((unsub) => unsub());
+      return () => unsub();
     };
+
+    fetchTasks();
   }, []);
 
   useEffect(() => {
     const loadMembers = async () => {
-      const memberIds = [
-        ...new Set(tasks.map((t) => t.assignedTo).filter(Boolean)),
-      ];
-      const memberMap = new Map<string, AppUser>();
-
-      await Promise.all(
-        memberIds.map(async (uid) => {
-          const userDoc = await getDoc(doc(db, "users", uid!));
-          if (userDoc.exists()) {
-            memberMap.set(uid!, {
-              id: uid!,
-              ...(userDoc.data() as Omit<AppUser, "id">),
-            });
-          }
+      const ids = [...new Set(tasks.map((t) => t.assignedTo).filter(Boolean))];
+      const results = await Promise.all(
+        ids.map(async (uid) => {
+          const docSnap = await getDoc(doc(db, "users", uid!));
+          if (!docSnap.exists()) return null;
+          const data = docSnap.data() as Omit<AppUser, "id">;
+          return { ...data, id: uid! };
         })
       );
-
-      setMembers(Array.from(memberMap.values()));
+      setMembers(results.filter(Boolean) as AppUser[]);
     };
-
-    if (tasks.length > 0) {
-      loadMembers();
-    }
+    if (tasks.length > 0) loadMembers();
   }, [tasks]);
 
-  const toggleComplete = async (task: FirestoreTask) => {
+  const toggleComplete = async (task: Task) => {
     try {
-      const taskRef = doc(db, task.__path);
-      await updateDoc(taskRef, { completed: !task.completed });
-    } catch (error) {
+      const ref = doc(db, "households", task.householdId, "tasks", task.id);
+      const newCompleted = !task.completed;
+      await updateDoc(ref, { completed: newCompleted });
+
+      // Create next instance if task is repeating and being marked completed
+      if (newCompleted && task.repeat) {
+        const currentDue =
+          task.dueDate instanceof Date
+            ? task.dueDate
+            : (task.dueDate as any).toDate();
+        const nextDue = getNextDueDate(
+          currentDue,
+          task.repeat.frequency,
+          task.repeat.interval
+        );
+
+        await addDoc(collection(db, "households", task.householdId, "tasks"), {
+          title: task.title,
+          assignedTo: task.assignedTo,
+          repeat: task.repeat,
+          completed: false,
+          createdAt: new Date(),
+          dueDate: nextDue,
+          householdId: task.householdId,
+          priority: task.priority ?? "medium",
+          details: task.details ?? "",
+        });
+      }
+    } catch {
       Alert.alert("Error", "Failed to update task.");
     }
   };
 
-  const handleDelete = async (task: FirestoreTask) => {
+  const handleDelete = async (task: Task) => {
     Alert.alert("Delete Task", "Are you sure you want to delete this task?", [
       { text: "Cancel", style: "cancel" },
       {
@@ -148,9 +129,15 @@ export default function HomeScreen({ navigation }: any) {
         style: "destructive",
         onPress: async () => {
           try {
-            const ref = doc(db, task.__path);
+            const ref = doc(
+              db,
+              "households",
+              task.householdId,
+              "tasks",
+              task.id
+            );
             await deleteDoc(ref);
-          } catch (err) {
+          } catch {
             Alert.alert("Error", "Failed to delete task.");
           }
         },
@@ -158,10 +145,60 @@ export default function HomeScreen({ navigation }: any) {
     ]);
   };
 
-  const handleEdit = (task: FirestoreTask) => {
+  const handleEdit = (task: Task) => {
     setSelectedTask(task);
     setShowModal(true);
   };
+
+  const today = new Date();
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay());
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+
+  const todayTasks = tasks.filter((t) => {
+    const due =
+      t.dueDate instanceof Date ? t.dueDate : (t.dueDate as any).toDate();
+    return due.toDateString() === today.toDateString();
+  });
+
+  const weekTasks = tasks.filter((t) => {
+    const due =
+      t.dueDate instanceof Date ? t.dueDate : (t.dueDate as any).toDate();
+    return due > today && due <= endOfWeek;
+  });
+
+  const upcomingTasks = tasks.filter((t) => {
+    const due =
+      t.dueDate instanceof Date ? t.dueDate : (t.dueDate as any).toDate();
+    return due > endOfWeek;
+  });
+
+  const renderGroup = (label: string, group: Task[]) => (
+    <View style={styles.taskGroupCard}>
+      <Text style={styles.groupTitle}>{label}</Text>
+      {group.length === 0 ? (
+        <Text style={styles.emptyText}>No tasks.</Text>
+      ) : (
+        group
+          .sort((a, b) => {
+            const aRank = a.priority ? priorityOrder[a.priority] : 3;
+            const bRank = b.priority ? priorityOrder[b.priority] : 3;
+            return aRank - bRank;
+          })
+          .map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              members={members}
+              onEdit={() => handleEdit(task)}
+              onDelete={() => handleDelete(task)}
+              onToggleComplete={() => toggleComplete(task)}
+            />
+          ))
+      )}
+    </View>
+  );
 
   if (loading) {
     return (
@@ -176,24 +213,12 @@ export default function HomeScreen({ navigation }: any) {
   return (
     <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
       <SafeAreaView style={styles.container}>
-        <Text style={styles.title}>Your Assigned Tasks</Text>
-        {tasks.length === 0 ? (
-          <Text style={styles.emptyText}>You have no assigned tasks.</Text>
-        ) : (
-          <FlatList
-            data={tasks}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <TaskCard
-                task={item}
-                members={members}
-                onEdit={() => handleEdit(item)}
-                onDelete={() => handleDelete(item)}
-                onToggleComplete={() => toggleComplete(item)}
-              />
-            )}
-          />
-        )}
+        <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
+          <Text style={styles.title}>Your Cleaning Tasks</Text>
+          {renderGroup("Today", todayTasks)}
+          {renderGroup("This Week", weekTasks)}
+          {renderGroup("Upcoming", upcomingTasks)}
+        </ScrollView>
 
         <TaskModal
           visible={showModal}
@@ -227,13 +252,33 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   title: {
-    fontSize: 22,
-    fontWeight: "600",
-    marginBottom: 16,
-    color: "#2b2d42",
+    fontSize: 28,
+    fontWeight: "700",
+    marginBottom: 24,
+    textAlign: "center",
+    color: "#1a1a2e",
   },
   emptyText: {
     fontStyle: "italic",
     color: "#555",
+    textAlign: "center",
+  },
+  taskGroupCard: {
+    backgroundColor: "#ffffffcc",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    marginHorizontal: 16,
+  },
+  groupTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#2b2d42",
+    textAlign: "center",
+    marginBottom: 12,
   },
 });
