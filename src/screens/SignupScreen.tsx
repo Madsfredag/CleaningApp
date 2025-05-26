@@ -7,6 +7,7 @@ import {
   StyleSheet,
   SafeAreaView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { createUserWithEmailAndPassword } from "firebase/auth";
@@ -16,6 +17,8 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { StackParamList } from "../types/Navigation";
 import { AppUser } from "../types/User";
 import { getUserHouseholdId } from "../firestore/HouseholdService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as LocalAuthentication from "expo-local-authentication";
 
 type Props = NativeStackScreenProps<StackParamList, "Signup">;
 
@@ -47,6 +50,34 @@ export default function SignupScreen({ navigation }: Props) {
       };
 
       await setDoc(doc(db, "users", uid), newUser);
+
+      // ✅ Ask if the user wants to enable biometrics
+      const hardware = await LocalAuthentication.hasHardwareAsync();
+      const enrolled = await LocalAuthentication.isEnrolledAsync();
+
+      if (hardware && enrolled) {
+        Alert.alert(
+          "Enable Biometric Login?",
+          "Would you like to enable biometric login for faster access?",
+          [
+            {
+              text: "No",
+              style: "cancel",
+            },
+            {
+              text: "Yes",
+              onPress: async () => {
+                try {
+                  await AsyncStorage.setItem("biometricEmail", email);
+                  await AsyncStorage.setItem("biometricPassword", password);
+                } catch (storageErr) {
+                  console.warn("Failed to save biometrics:", storageErr);
+                }
+              },
+            },
+          ]
+        );
+      }
 
       const householdId = await getUserHouseholdId(uid);
       navigation.replace(householdId ? "MainTabs" : "JoinHousehold");
@@ -153,6 +184,7 @@ const styles = StyleSheet.create({
   link: {
     textAlign: "center",
     marginTop: 20,
+    color: "#2b2d42",
   },
   error: {
     color: "#d90429",

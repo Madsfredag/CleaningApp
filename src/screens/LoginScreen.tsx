@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   TextInput,
@@ -7,6 +7,7 @@ import {
   StyleSheet,
   SafeAreaView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { signInWithEmailAndPassword } from "firebase/auth";
@@ -14,6 +15,8 @@ import { auth } from "../firebase/firebaseConfig";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { StackParamList } from "../types/Navigation";
 import { getUserHouseholdId } from "../firestore/HouseholdService";
+import * as LocalAuthentication from "expo-local-authentication";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type Props = NativeStackScreenProps<StackParamList, "Login">;
 
@@ -22,6 +25,22 @@ export default function LoginScreen({ navigation }: Props) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [hasSavedCredentials, setHasSavedCredentials] = useState(false);
+
+  useEffect(() => {
+    const checkBiometrics = async () => {
+      const isHardwareAvailable = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      const savedEmail = await AsyncStorage.getItem("biometricEmail");
+      const savedPassword = await AsyncStorage.getItem("biometricPassword");
+
+      setBiometricAvailable(isHardwareAvailable && isEnrolled);
+      setHasSavedCredentials(!!savedEmail && !!savedPassword);
+    };
+
+    checkBiometrics();
+  }, []);
 
   const handleLogin = async () => {
     try {
@@ -32,15 +51,46 @@ export default function LoginScreen({ navigation }: Props) {
         password
       );
 
-      // ✅ Wait for household data before navigating
       const uid = userCredential.user.uid;
       const householdId = await getUserHouseholdId(uid);
-
       navigation.replace(householdId ? "MainTabs" : "JoinHousehold");
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "Unknown login error";
       setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBiometricLogin = async () => {
+    try {
+      const authResult = await LocalAuthentication.authenticateAsync({
+        promptMessage: "Authenticate to login",
+      });
+
+      if (!authResult.success) return;
+
+      const savedEmail = await AsyncStorage.getItem("biometricEmail");
+      const savedPassword = await AsyncStorage.getItem("biometricPassword");
+
+      if (!savedEmail || !savedPassword) {
+        Alert.alert("Biometric Error", "No saved credentials found.");
+        return;
+      }
+
+      setLoading(true);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        savedEmail,
+        savedPassword
+      );
+
+      const uid = userCredential.user.uid;
+      const householdId = await getUserHouseholdId(uid);
+      navigation.replace(householdId ? "MainTabs" : "JoinHousehold");
+    } catch (err) {
+      Alert.alert("Biometric Login Failed", "Please try again.");
     } finally {
       setLoading(false);
     }
@@ -77,6 +127,17 @@ export default function LoginScreen({ navigation }: Props) {
             <Text style={styles.buttonText}>Log In</Text>
           )}
         </TouchableOpacity>
+
+        {biometricAvailable && hasSavedCredentials && (
+          <TouchableOpacity
+            style={[styles.button, styles.biometricButton]}
+            onPress={handleBiometricLogin}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>Log In with Biometrics</Text>
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
           <Text style={styles.link}>Don’t have an account? Sign up</Text>
         </TouchableOpacity>
@@ -121,6 +182,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginHorizontal: 28,
   },
+  biometricButton: {
+    backgroundColor: "#2b2d42",
+  },
   buttonText: {
     color: "#fff",
     fontWeight: "600",
@@ -129,6 +193,7 @@ const styles = StyleSheet.create({
   link: {
     textAlign: "center",
     marginTop: 20,
+    color: "#2b2d42",
   },
   error: {
     color: "#d90429",
