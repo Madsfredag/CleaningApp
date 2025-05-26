@@ -33,6 +33,7 @@ import { AppUser } from "../types/User";
 import QrCodeCard from "../components/QrCodeCard";
 import { getNextDueDate } from "../utils/getNextDueDate";
 import { archiveOldCompletedTasks } from "../utils/archiveOldCompletedTasks";
+import { handleToggleCompleteTask } from "../utils/handleToggleComplete";
 
 export default function HouseholdScreen() {
   const { user } = useAuth();
@@ -144,34 +145,11 @@ export default function HouseholdScreen() {
     ]);
   };
 
-  const handleToggleComplete = async (task: Task) => {
-    if (!household) return;
-    const taskRef = doc(db, "households", household.id, "tasks", task.id);
-    const newCompleted = !task.completed;
-    await updateDoc(taskRef, { completed: newCompleted });
-
-    if (newCompleted && task.repeat) {
-      const currentDue =
-        task.dueDate instanceof Date
-          ? task.dueDate
-          : (task.dueDate as any).toDate();
-      const nextDue = getNextDueDate(
-        currentDue,
-        task.repeat.frequency,
-        task.repeat.interval
-      );
-
-      await addDoc(collection(db, "households", household.id, "tasks"), {
-        title: task.title,
-        assignedTo: task.assignedTo,
-        repeat: task.repeat,
-        completed: false,
-        createdAt: new Date(),
-        dueDate: nextDue,
-        householdId: household.id,
-        priority: task.priority ?? "medium",
-        details: task.details ?? "",
-      });
+  const toggleComplete = async (task: Task) => {
+    try {
+      await handleToggleCompleteTask(task);
+    } catch {
+      Alert.alert("Error", "Failed to update task.");
     }
   };
 
@@ -207,7 +185,7 @@ export default function HouseholdScreen() {
                   members={members}
                   onEdit={() => handleEdit(task)}
                   onDelete={() => handleDelete(task.id)}
-                  onToggleComplete={() => handleToggleComplete(task)}
+                  onToggleComplete={() => toggleComplete(task)}
                 />
               ))
             )}

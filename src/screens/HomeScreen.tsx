@@ -15,16 +15,14 @@ import {
   collection,
   doc,
   onSnapshot,
-  updateDoc,
   deleteDoc,
   getDoc,
-  addDoc,
 } from "firebase/firestore";
 import TaskCard from "../components/TaskCard";
 import TaskModal from "../components/TaskModal";
 import { Task, TaskPriority } from "../types/Task";
 import { AppUser } from "../types/User";
-import { getNextDueDate } from "../utils/getNextDueDate";
+import { handleToggleCompleteTask } from "../utils/handleToggleComplete";
 
 const priorityOrder: Record<NonNullable<TaskPriority>, number> = {
   high: 0,
@@ -43,22 +41,32 @@ export default function HomeScreen({ navigation }: any) {
   useEffect(() => {
     if (!user) return navigation.replace("Login");
 
-    const fetchTasks = async () => {
+    const fetchTasksForHousehold = async () => {
       const userDoc = await getDoc(doc(db, "users", user.uid));
       if (!userDoc.exists()) return;
 
       const userData = userDoc.data() as AppUser;
-      if (!userData.householdId) return;
-
       const householdId = userData.householdId;
+      if (!householdId) return;
+
       const taskRef = collection(db, "households", householdId, "tasks");
 
       const unsub = onSnapshot(taskRef, (snap) => {
-        const loadedTasks: Task[] = snap.docs.map((doc) => ({
-          id: doc.id,
-          ...(doc.data() as Omit<Task, "id">),
-          householdId,
-        }));
+        const loadedTasks: Task[] = snap.docs
+          .map((docSnap) => {
+            const data = docSnap.data();
+            return {
+              ...(data as Omit<Task, "id">),
+              id: docSnap.id,
+              householdId,
+            };
+          })
+          .filter(
+            (task) =>
+              task.assignedTo === user.uid ||
+              task.assignedTo === null ||
+              task.assignedTo === ""
+          );
 
         setTasks(loadedTasks);
         setLoading(false);
@@ -67,7 +75,7 @@ export default function HomeScreen({ navigation }: any) {
       return () => unsub();
     };
 
-    fetchTasks();
+    fetchTasksForHousehold();
   }, []);
 
   useEffect(() => {
@@ -88,34 +96,7 @@ export default function HomeScreen({ navigation }: any) {
 
   const toggleComplete = async (task: Task) => {
     try {
-      const ref = doc(db, "households", task.householdId, "tasks", task.id);
-      const newCompleted = !task.completed;
-      await updateDoc(ref, { completed: newCompleted });
-
-      // Create next instance if task is repeating and being marked completed
-      if (newCompleted && task.repeat) {
-        const currentDue =
-          task.dueDate instanceof Date
-            ? task.dueDate
-            : (task.dueDate as any).toDate();
-        const nextDue = getNextDueDate(
-          currentDue,
-          task.repeat.frequency,
-          task.repeat.interval
-        );
-
-        await addDoc(collection(db, "households", task.householdId, "tasks"), {
-          title: task.title,
-          assignedTo: task.assignedTo,
-          repeat: task.repeat,
-          completed: false,
-          createdAt: new Date(),
-          dueDate: nextDue,
-          householdId: task.householdId,
-          priority: task.priority ?? "medium",
-          details: task.details ?? "",
-        });
-      }
+      await handleToggleCompleteTask(task);
     } catch {
       Alert.alert("Error", "Failed to update task.");
     }
