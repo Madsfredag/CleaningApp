@@ -169,6 +169,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     justifyContent: "center",
+    marginTop: -200, // ⬅️ Pull it up a bit
   },
   title: {
     fontSize: 30,

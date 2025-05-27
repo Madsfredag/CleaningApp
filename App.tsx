@@ -1,3 +1,4 @@
+import "text-encoding-polyfill";
 import React from "react";
 import * as Notifications from "expo-notifications";
 import { AuthProvider } from "./src/context/AuthContext";

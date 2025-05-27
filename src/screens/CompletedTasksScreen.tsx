@@ -23,6 +23,7 @@ import { AppUser } from "../types/User";
 import TaskCard from "../components/TaskCard";
 import i18n from "../translations/i18n";
 import { useLanguage } from "../context/LanguageContext";
+import ReadonlyTaskCard from "../components/ReadOnlyTaskCard";
 
 export default function CompletedTasksScreen() {
   const { language } = useLanguage();
@@ -114,14 +115,7 @@ export default function CompletedTasksScreen() {
               </Text>
             ) : (
               tasks.map((task) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  members={members}
-                  onEdit={() => {}}
-                  onDelete={() => {}}
-                  onToggleComplete={() => {}}
-                />
+                <ReadonlyTaskCard key={task.id} task={task} members={members} />
               ))
             )}
           </View>

@@ -180,6 +180,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     justifyContent: "center",
+    marginTop: -150, // ⬅️ Pull it up a bit
   },
   title: {
     fontSize: 30,
