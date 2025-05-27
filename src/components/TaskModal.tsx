@@ -19,6 +19,7 @@ import {
   updateDoc,
   deleteDoc,
   collection,
+  getDoc,
 } from "firebase/firestore";
 import { Timestamp } from "firebase/firestore";
 import { db } from "../firebase/firebaseConfig";
@@ -27,6 +28,12 @@ import { Task, TaskRepeat, TaskPriority } from "../types/Task";
 import MemberPicker from "./MemberPicker";
 import RepeatSelector from "./RepeatSelector";
 import { AppUser } from "../types/User";
+import { sendPushNotification } from "../utils/sendPushNotification";
+import { useAuth } from "../context/AuthContext";
+import {
+  cancelTaskReminder,
+  scheduleTaskReminder,
+} from "../utils/scheduleLocalReminder";
 
 interface Props {
   visible: boolean;
@@ -53,6 +60,8 @@ export default function TaskModal({
   const [dueDate, setDueDate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  const { user } = useAuth();
+
   useEffect(() => {
     if (task) {
       setTitle(task.title);
@@ -78,10 +87,38 @@ export default function TaskModal({
     setDueDate(new Date());
   };
 
+  const sendNotifications = async (
+    title: string,
+    type: "created" | "updated" | "deleted"
+  ) => {
+    if (!user) return;
+
+    const userDocs = await Promise.all(
+      household.members
+        .filter((uid) => uid !== user.id) // skip sender
+        .map(async (uid) => {
+          const userDoc = await getDoc(doc(db, "users", uid));
+          if (!userDoc.exists()) return null;
+          const member = userDoc.data() as AppUser;
+          return member.pushToken ? member.pushToken : null;
+        })
+    );
+
+    const tokens = userDocs.filter(Boolean) as string[];
+    const message =
+      type === "deleted"
+        ? `“${title}” was deleted`
+        : `“${title}” was ${type === "created" ? "created" : "updated"}`;
+
+    for (const token of tokens) {
+      await sendPushNotification(token, "Task Notification", message);
+    }
+  };
+
   const handleSave = async () => {
     if (!title.trim()) return Alert.alert("Enter a task title");
 
-    const data = {
+    const newData = {
       title: title.trim(),
       assignedTo,
       repeat,
@@ -93,13 +130,30 @@ export default function TaskModal({
       details: details.trim(),
     };
 
+    let newTaskId = task?.id;
+
     if (task) {
+      // Cancel old reminder (if assignee changed, due date changed, etc.)
+      if (task.assignedTo && user?.id === task.assignedTo) {
+        await cancelTaskReminder(task.id, task.assignedTo);
+      }
       await updateDoc(
         doc(db, "households", household.id, "tasks", task.id),
-        data
+        newData
       );
+      await sendNotifications(title.trim(), "updated");
     } else {
-      await addDoc(collection(db, "households", household.id, "tasks"), data);
+      const docRef = await addDoc(
+        collection(db, "households", household.id, "tasks"),
+        newData
+      );
+      newTaskId = docRef.id;
+      await sendNotifications(title.trim(), "created");
+    }
+
+    // ⏰ Schedule new reminder if this user is the assignee
+    if (user && newTaskId && (!assignedTo || user.id === assignedTo)) {
+      await scheduleTaskReminder({ ...newData, id: newTaskId } as Task, user);
     }
 
     resetForm();
@@ -108,16 +162,32 @@ export default function TaskModal({
 
   const handleDelete = () => {
     if (!task) return;
+
     Alert.alert("Delete Task", "Are you sure you want to delete this task?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",
         style: "destructive",
         onPress: async () => {
-          await deleteDoc(
-            doc(db, "households", household.id, "tasks", task.id)
-          );
-          onClose();
+          try {
+            await deleteDoc(
+              doc(db, "households", household.id, "tasks", task.id)
+            );
+
+            if (task.assignedTo && user?.id === task.assignedTo) {
+              await cancelTaskReminder(task.id, task.assignedTo);
+            }
+
+            // ✅ Ensure this runs BEFORE closing modal
+            await sendNotifications(task.title, "deleted");
+
+            onClose(); // ⬅️ only close the modal after the notification is sent
+          } catch (err) {
+            console.error(
+              "❌ Error deleting task or sending notification:",
+              err
+            );
+          }
         },
       },
     ]);

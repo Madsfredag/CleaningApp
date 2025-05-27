@@ -12,13 +12,15 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "../firebase/firebaseConfig";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, updateDoc } from "firebase/firestore";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { StackParamList } from "../types/Navigation";
 import { AppUser } from "../types/User";
 import { getUserHouseholdId } from "../firestore/HouseholdService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as LocalAuthentication from "expo-local-authentication";
+import * as Notifications from "expo-notifications";
+import { registerForPushNotificationsAsync } from "../utils/notifications";
 
 type Props = NativeStackScreenProps<StackParamList, "Signup">;
 
@@ -34,12 +36,12 @@ export default function SignupScreen({ navigation }: Props) {
 
     try {
       setLoading(true);
+
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
         password
       );
-
       const uid = userCredential.user.uid;
 
       const newUser: AppUser = {
@@ -47,15 +49,18 @@ export default function SignupScreen({ navigation }: Props) {
         email,
         displayName: username.trim(),
         createdAt: new Date(),
+        householdId: null,
+        points: 0,
+        pushToken: null,
       };
 
       await setDoc(doc(db, "users", uid), newUser);
 
-      // ✅ Ask if the user wants to enable biometrics
-      const hardware = await LocalAuthentication.hasHardwareAsync();
-      const enrolled = await LocalAuthentication.isEnrolledAsync();
+      // 🔐 Ask if the user wants to enable biometrics
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
 
-      if (hardware && enrolled) {
+      if (hasHardware && isEnrolled) {
         Alert.alert(
           "Enable Biometric Login?",
           "Would you like to enable biometric login for faster access?",
@@ -70,13 +75,32 @@ export default function SignupScreen({ navigation }: Props) {
                 try {
                   await AsyncStorage.setItem("biometricEmail", email);
                   await AsyncStorage.setItem("biometricPassword", password);
-                } catch (storageErr) {
-                  console.warn("Failed to save biometrics:", storageErr);
+                } catch (err) {
+                  console.warn("Failed to save biometrics:", err);
                 }
               },
             },
           ]
         );
+      }
+
+      // 🔔 Ask for push notification permissions and store token
+      const { status } = await Notifications.getPermissionsAsync();
+      let finalStatus = status;
+
+      if (status !== "granted") {
+        const { status: newStatus } =
+          await Notifications.requestPermissionsAsync();
+        finalStatus = newStatus;
+      }
+
+      if (finalStatus === "granted") {
+        const token = await registerForPushNotificationsAsync();
+        if (token) {
+          await updateDoc(doc(db, "users", uid), {
+            pushToken: token,
+          });
+        }
       }
 
       const householdId = await getUserHouseholdId(uid);

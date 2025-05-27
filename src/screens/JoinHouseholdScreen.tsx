@@ -26,7 +26,7 @@ export default function JoinHouseholdScreen({ navigation }: any) {
   const handleCreate = async () => {
     if (!name.trim()) return setError("Enter a household name");
     try {
-      const code = await createHousehold(name.trim(), user!.uid);
+      const code = await createHousehold(name.trim(), user!.id);
       setCreatedCode(code);
     } catch {
       setError("Could not create household");
@@ -37,7 +37,7 @@ export default function JoinHouseholdScreen({ navigation }: any) {
     if (!code.trim()) return setError("Enter a code");
     const householdId = await joinHouseholdByCode(
       code.trim().toUpperCase(),
-      user!.uid
+      user!.id
     );
     if (householdId) {
       navigation.replace("MainTabs");

@@ -11,12 +11,15 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../firebase/firebaseConfig";
+import { auth, db } from "../firebase/firebaseConfig";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { StackParamList } from "../types/Navigation";
 import { getUserHouseholdId } from "../firestore/HouseholdService";
 import * as LocalAuthentication from "expo-local-authentication";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Notifications from "expo-notifications";
+import { registerForPushNotificationsAsync } from "../utils/notifications";
+import { doc, updateDoc } from "firebase/firestore";
 
 type Props = NativeStackScreenProps<StackParamList, "Login">;
 
@@ -29,17 +32,16 @@ export default function LoginScreen({ navigation }: Props) {
   const [hasSavedCredentials, setHasSavedCredentials] = useState(false);
 
   useEffect(() => {
-    const checkBiometrics = async () => {
+    const initialize = async () => {
       const isHardwareAvailable = await LocalAuthentication.hasHardwareAsync();
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
       const savedEmail = await AsyncStorage.getItem("biometricEmail");
       const savedPassword = await AsyncStorage.getItem("biometricPassword");
-
       setBiometricAvailable(isHardwareAvailable && isEnrolled);
       setHasSavedCredentials(!!savedEmail && !!savedPassword);
     };
 
-    checkBiometrics();
+    initialize();
   }, []);
 
   const handleLogin = async () => {
@@ -50,8 +52,14 @@ export default function LoginScreen({ navigation }: Props) {
         email,
         password
       );
-
       const uid = userCredential.user.uid;
+
+      // 📱 Register and store push token
+      const token = await registerForPushNotificationsAsync();
+      if (token) {
+        await updateDoc(doc(db, "users", uid), { pushToken: token });
+      }
+
       const householdId = await getUserHouseholdId(uid);
       navigation.replace(householdId ? "MainTabs" : "JoinHousehold");
     } catch (err: unknown) {
@@ -87,6 +95,13 @@ export default function LoginScreen({ navigation }: Props) {
       );
 
       const uid = userCredential.user.uid;
+
+      // 📱 Register and store push token
+      const token = await registerForPushNotificationsAsync();
+      if (token) {
+        await updateDoc(doc(db, "users", uid), { pushToken: token });
+      }
+
       const householdId = await getUserHouseholdId(uid);
       navigation.replace(householdId ? "MainTabs" : "JoinHousehold");
     } catch (err) {

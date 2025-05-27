@@ -26,7 +26,7 @@ export default function AppNavigator() {
         setInitialRoute("Login");
         return;
       }
-      const householdId = await getUserHouseholdId(user.uid);
+      const householdId = await getUserHouseholdId(user.id);
       if (householdId) {
         setInitialRoute("MainTabs");
       } else {

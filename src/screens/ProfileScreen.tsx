@@ -28,7 +28,7 @@ export default function ProfileScreen() {
   useEffect(() => {
     if (!user) return;
     const fetch = async () => {
-      const snap = await getDoc(doc(db, "users", user.uid));
+      const snap = await getDoc(doc(db, "users", user.id));
       if (!snap.exists()) return;
       const data = snap.data();
       setAppUser({
@@ -45,7 +45,7 @@ export default function ProfileScreen() {
   const handleUpdate = async () => {
     if (!user || !displayName.trim()) return;
     try {
-      await updateDoc(doc(db, "users", user.uid), {
+      await updateDoc(doc(db, "users", user.id), {
         displayName: displayName.trim(),
       });
       setAppUser((prev) =>

@@ -35,7 +35,7 @@ export default function CompletedTasksScreen() {
       try {
         const q = query(
           collection(db, "households"),
-          where("members", "array-contains", user.uid)
+          where("members", "array-contains", user.id)
         );
         const snap = await getDocs(q);
         if (snap.empty) return;

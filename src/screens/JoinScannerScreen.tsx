@@ -49,7 +49,7 @@ export default function JoinScannerScreen() {
     }
 
     try {
-      const joined = await joinHouseholdSafely(code.toUpperCase(), user.uid);
+      const joined = await joinHouseholdSafely(code.toUpperCase(), user.id);
       if (joined) {
         Alert.alert("Success", "You joined the household.", [
           {

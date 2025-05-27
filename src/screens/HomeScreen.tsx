@@ -11,18 +11,13 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase/firebaseConfig";
-import {
-  collection,
-  doc,
-  onSnapshot,
-  deleteDoc,
-  getDoc,
-} from "firebase/firestore";
+import { collection, doc, onSnapshot, getDoc } from "firebase/firestore";
 import TaskCard from "../components/TaskCard";
 import TaskModal from "../components/TaskModal";
 import { Task, TaskPriority } from "../types/Task";
 import { AppUser } from "../types/User";
 import { handleToggleCompleteTask } from "../utils/handleToggleComplete";
+import { deleteTaskWithCleanup } from "../utils/deleteTask";
 
 const priorityOrder: Record<NonNullable<TaskPriority>, number> = {
   high: 0,
@@ -42,7 +37,7 @@ export default function HomeScreen({ navigation }: any) {
     if (!user) return navigation.replace("Login");
 
     const fetchTasksForHousehold = async () => {
-      const userDoc = await getDoc(doc(db, "users", user.uid));
+      const userDoc = await getDoc(doc(db, "users", user.id));
       if (!userDoc.exists()) return;
 
       const userData = userDoc.data() as AppUser;
@@ -63,7 +58,7 @@ export default function HomeScreen({ navigation }: any) {
           })
           .filter(
             (task) =>
-              task.assignedTo === user.uid ||
+              task.assignedTo === user.id ||
               task.assignedTo === null ||
               task.assignedTo === ""
           );
@@ -110,14 +105,7 @@ export default function HomeScreen({ navigation }: any) {
         style: "destructive",
         onPress: async () => {
           try {
-            const ref = doc(
-              db,
-              "households",
-              task.householdId,
-              "tasks",
-              task.id
-            );
-            await deleteDoc(ref);
+            await deleteTaskWithCleanup(task, user!.id);
           } catch {
             Alert.alert("Error", "Failed to delete task.");
           }

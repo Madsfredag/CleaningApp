@@ -27,18 +27,27 @@ function generateCode(): string {
  */
 export async function createHousehold(name: string, userId: string): Promise<string> {
   const code = generateCode();
-  const docRef = await addDoc(collection(db, 'households'), {
-    name,
-    code,
-    ownerId: userId,
-    members: [userId],
-    createdAt: serverTimestamp(),
-  });
 
-  // Save the householdId to the user document
-  await setDoc(doc(db, 'users', userId), { householdId: docRef.id }, { merge: true });
+  try {
+    const docRef = await addDoc(collection(db, 'households'), {
+      name,
+      code,
+      ownerId: userId,
+      members: [userId],
+      createdAt: serverTimestamp(),
+    });
 
-  return code; // return the code so it can be used in QR
+    await setDoc(
+      doc(db, 'users', userId),
+      { householdId: docRef.id },
+      { merge: true }
+    );
+
+    return code;
+  } catch (err) {
+    console.error("❌ createHousehold failed:", err);
+    throw err;
+  }
 }
 
 /**

@@ -1,30 +1,49 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { User, onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "../firebase/firebaseConfig";
+// src/context/AuthContext.tsx
+import React, { createContext, useContext, useEffect, useState } from "react";
+import {
+  onAuthStateChanged,
+  signOut,
+  User as FirebaseUser,
+} from "firebase/auth";
+import { auth, db } from "../firebase/firebaseConfig";
+import { doc, getDoc } from "firebase/firestore";
+import { AppUser } from "../types/User";
 
 interface AuthContextType {
-  user: User | null;
+  user: AppUser | null;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
 
   useEffect(() => {
-    if (!auth) return; // Prevent running if auth is not ready
-
     const unsubscribe = onAuthStateChanged(
       auth,
-      (user) => {
-        console.log("👤 Auth state changed:", user);
-        setUser(user);
-      },
-      (error) => {
-        console.error("🔥 Auth listener error:", error);
+      async (firebaseUser: FirebaseUser | null) => {
+        if (!firebaseUser) {
+          setUser(null);
+          return;
+        }
+
+        const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setUser({
+            id: firebaseUser.uid,
+            email: userData.email,
+            displayName: userData.displayName,
+            createdAt: userData.createdAt.toDate?.() ?? new Date(),
+            householdId: userData.householdId ?? null,
+            points: userData.points ?? 0,
+            pushToken: userData.pushToken ?? null,
+          });
+        }
       }
     );
+
     return unsubscribe;
   }, []);
 
@@ -38,7 +57,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used inside AuthProvider");
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
 };

@@ -34,6 +34,8 @@ import QrCodeCard from "../components/QrCodeCard";
 import { getNextDueDate } from "../utils/getNextDueDate";
 import { archiveOldCompletedTasks } from "../utils/archiveOldCompletedTasks";
 import { handleToggleCompleteTask } from "../utils/handleToggleComplete";
+import { scheduleTaskReminder } from "../utils/scheduleLocalReminder";
+import { deleteTaskWithCleanup } from "../utils/deleteTask";
 
 export default function HouseholdScreen() {
   const { user } = useAuth();
@@ -49,7 +51,7 @@ export default function HouseholdScreen() {
     const fetchHousehold = async () => {
       const q = query(
         collection(db, "households"),
-        where("members", "array-contains", user.uid)
+        where("members", "array-contains", user.id)
       );
       const snap = await getDocs(q);
       if (!snap.empty) {
@@ -131,15 +133,18 @@ export default function HouseholdScreen() {
     setShowModal(true);
   };
 
-  const handleDelete = (taskId: string) => {
+  const handleDelete = async (task: Task) => {
     Alert.alert("Delete Task", "Are you sure you want to delete this task?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",
         style: "destructive",
         onPress: async () => {
-          if (!household) return;
-          await deleteDoc(doc(db, "households", household.id, "tasks", taskId));
+          try {
+            await deleteTaskWithCleanup(task, user!.id);
+          } catch {
+            Alert.alert("Error", "Failed to delete task.");
+          }
         },
       },
     ]);
@@ -184,7 +189,7 @@ export default function HouseholdScreen() {
                   task={task}
                   members={members}
                   onEdit={() => handleEdit(task)}
-                  onDelete={() => handleDelete(task.id)}
+                  onDelete={() => handleDelete(task)}
                   onToggleComplete={() => toggleComplete(task)}
                 />
               ))
