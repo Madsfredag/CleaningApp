@@ -1,10 +1,9 @@
-// components/MemberPicker.tsx
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { Household } from "../types/Household";
 import { AppUser } from "../types/User";
-
+import i18n from "../translations/i18n";
 interface Props {
   household: Household;
   value: string | null;
@@ -15,13 +14,13 @@ interface Props {
 export default function MemberPicker({ value, onChange, members }: Props) {
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Assign To</Text>
+      <Text style={styles.label}>{i18n.t("assign_to")}</Text>
       <View style={styles.pickerWrapper}>
         <Picker
           selectedValue={value ?? ""}
           onValueChange={(val) => onChange(val || null)}
         >
-          <Picker.Item label="Unassigned" value="" />
+          <Picker.Item label={i18n.t("unassigned")} value="" />
           {members.map((user) => (
             <Picker.Item
               key={user.id}

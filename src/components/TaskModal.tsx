@@ -1,3 +1,4 @@
+// TaskModal.tsx
 import React, { useState, useEffect } from "react";
 import {
   Modal,
@@ -34,7 +35,7 @@ import {
   cancelTaskReminder,
   scheduleTaskReminder,
 } from "../utils/scheduleLocalReminder";
-
+import i18n from "../translations/i18n";
 interface Props {
   visible: boolean;
   onClose: () => void;
@@ -95,7 +96,7 @@ export default function TaskModal({
 
     const userDocs = await Promise.all(
       household.members
-        .filter((uid) => uid !== user.id) // skip sender
+        .filter((uid) => uid !== user.id)
         .map(async (uid) => {
           const userDoc = await getDoc(doc(db, "users", uid));
           if (!userDoc.exists()) return null;
@@ -107,16 +108,18 @@ export default function TaskModal({
     const tokens = userDocs.filter(Boolean) as string[];
     const message =
       type === "deleted"
-        ? `“${title}” was deleted`
-        : `“${title}” was ${type === "created" ? "created" : "updated"}`;
+        ? `“${title}” ${i18n.t("was_deleted")}`
+        : `“${title}” ${i18n.t(
+            type === "created" ? "was_created" : "was_updated"
+          )}`;
 
     for (const token of tokens) {
-      await sendPushNotification(token, "Task Notification", message);
+      await sendPushNotification(token, i18n.t("task_notification"), message);
     }
   };
 
   const handleSave = async () => {
-    if (!title.trim()) return Alert.alert("Enter a task title");
+    if (!title.trim()) return Alert.alert(i18n.t("enter_task_title"));
 
     const newData = {
       title: title.trim(),
@@ -133,7 +136,6 @@ export default function TaskModal({
     let newTaskId = task?.id;
 
     if (task) {
-      // Cancel old reminder (if assignee changed, due date changed, etc.)
       if (task.assignedTo && user?.id === task.assignedTo) {
         await cancelTaskReminder(task.id, task.assignedTo);
       }
@@ -151,7 +153,6 @@ export default function TaskModal({
       await sendNotifications(title.trim(), "created");
     }
 
-    // ⏰ Schedule new reminder if this user is the assignee
     if (user && newTaskId && (!assignedTo || user.id === assignedTo)) {
       await scheduleTaskReminder({ ...newData, id: newTaskId } as Task, user);
     }
@@ -163,10 +164,10 @@ export default function TaskModal({
   const handleDelete = () => {
     if (!task) return;
 
-    Alert.alert("Delete Task", "Are you sure you want to delete this task?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(i18n.t("delete_task"), i18n.t("delete_task_confirm"), [
+      { text: i18n.t("cancel"), style: "cancel" },
       {
-        text: "Delete",
+        text: i18n.t("delete"),
         style: "destructive",
         onPress: async () => {
           try {
@@ -178,10 +179,8 @@ export default function TaskModal({
               await cancelTaskReminder(task.id, task.assignedTo);
             }
 
-            // ✅ Ensure this runs BEFORE closing modal
             await sendNotifications(task.title, "deleted");
-
-            onClose(); // ⬅️ only close the modal after the notification is sent
+            onClose();
           } catch (err) {
             console.error(
               "❌ Error deleting task or sending notification:",
@@ -210,17 +209,19 @@ export default function TaskModal({
       >
         <View style={styles.modal}>
           <ScrollView contentContainerStyle={styles.scrollContent}>
-            <Text style={styles.title}>{task ? "Edit Task" : "New Task"}</Text>
+            <Text style={styles.title}>
+              {task ? i18n.t("edit_task") : i18n.t("new_task")}
+            </Text>
 
-            <Text style={styles.label}>Task Title</Text>
+            <Text style={styles.label}>{i18n.t("task_title")}</Text>
             <TextInput
-              placeholder="Task title"
+              placeholder={i18n.t("task_title_placeholder")}
               style={styles.input}
               value={title}
               onChangeText={setTitle}
             />
 
-            <Text style={styles.label}>Due Date</Text>
+            <Text style={styles.label}>{i18n.t("due_date")}</Text>
             <TouchableOpacity
               onPress={toggleDatePicker}
               style={styles.dateDisplay}
@@ -243,7 +244,7 @@ export default function TaskModal({
               />
             )}
 
-            <Text style={styles.label}>Assigned To</Text>
+            <Text style={styles.label}>{i18n.t("assigned_to")}</Text>
             <MemberPicker
               household={household}
               value={assignedTo}
@@ -251,7 +252,7 @@ export default function TaskModal({
               members={members}
             />
 
-            <Text style={styles.label}>Priority</Text>
+            <Text style={styles.label}>{i18n.t("priority")}</Text>
             <View style={styles.priorityGroup}>
               {PRIORITY_LEVELS.map((level) => (
                 <TouchableOpacity
@@ -268,7 +269,7 @@ export default function TaskModal({
                       priority === level && styles.priorityTextSelected,
                     ]}
                   >
-                    {level.charAt(0).toUpperCase() + level.slice(1)}
+                    {i18n.t(`priority_${level}`)}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -276,9 +277,9 @@ export default function TaskModal({
 
             <RepeatSelector value={repeat} onChange={setRepeat} />
 
-            <Text style={styles.label}>Details</Text>
+            <Text style={styles.label}>{i18n.t("details")}</Text>
             <TextInput
-              placeholder="Extra info..."
+              placeholder={i18n.t("extra_info_placeholder")}
               style={[styles.input, styles.textArea]}
               value={details}
               onChangeText={setDetails}
@@ -286,11 +287,19 @@ export default function TaskModal({
             />
 
             <View style={styles.buttonRow}>
-              <Button title="Cancel" onPress={onClose} />
+              <Button title={i18n.t("cancel")} onPress={onClose} />
               {task && (
-                <Button title="Delete" onPress={handleDelete} color="#d90429" />
+                <Button
+                  title={i18n.t("delete")}
+                  onPress={handleDelete}
+                  color="#d90429"
+                />
               )}
-              <Button title="Save" onPress={handleSave} color="#28a745" />
+              <Button
+                title={i18n.t("save")}
+                onPress={handleSave}
+                color="#28a745"
+              />
             </View>
           </ScrollView>
         </View>

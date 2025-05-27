@@ -1,4 +1,3 @@
-// utils/joinHouseholdSafely.ts
 import {
   getDoc,
   updateDoc,
@@ -13,6 +12,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase/firebaseConfig";
 import { Alert } from "react-native";
+import i18n from "../translations/i18n";
 
 /**
  * Safe join logic: Confirm, leave previous household, update new one.
@@ -43,11 +43,19 @@ export async function joinHouseholdSafely(
   if (currentHouseholdId) {
     const confirmed = await new Promise<boolean>((resolve) => {
       Alert.alert(
-        "Switch Household",
-        "You're already in a household. Do you want to leave and join a new one?",
+        i18n.t("switch_household_title"),
+        i18n.t("switch_household_message"),
         [
-          { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
-          { text: "Join New", style: "destructive", onPress: () => resolve(true) },
+          {
+            text: i18n.t("cancel"),
+            style: "cancel",
+            onPress: () => resolve(false),
+          },
+          {
+            text: i18n.t("join_new_household"),
+            style: "destructive",
+            onPress: () => resolve(true),
+          },
         ]
       );
     });

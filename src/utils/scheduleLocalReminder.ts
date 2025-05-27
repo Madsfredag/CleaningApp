@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import { SchedulableTriggerInputTypes } from 'expo-notifications';
 import { Task } from '../types/Task';
 import { AppUser } from '../types/User';
+import i18n from '../translations/i18n';
 
 /**
  * Schedules a local reminder for 9:00 AM on the task's due date,
@@ -9,11 +10,12 @@ import { AppUser } from '../types/User';
  */
 export async function scheduleTaskReminder(task: Task, user: AppUser) {
   if (!task.dueDate) return;
-if (task.assignedTo && task.assignedTo !== user.id) return;
+  if (task.assignedTo && task.assignedTo !== user.id) return;
 
-  const raw = task.dueDate instanceof Date
-    ? task.dueDate
-    : (task.dueDate as any).toDate?.() ?? new Date(task.dueDate);
+  const raw =
+    task.dueDate instanceof Date
+      ? task.dueDate
+      : (task.dueDate as any).toDate?.() ?? new Date(task.dueDate);
 
   const now = new Date();
 
@@ -46,14 +48,14 @@ if (task.assignedTo && task.assignedTo !== user.id) return;
     await Notifications.scheduleNotificationAsync({
       identifier, // use this to cancel it later
       content: {
-        title: 'Task Reminder',
-        body: `“${task.title}” is due today!`,
+        title: i18n.t("task_reminder_title"),
+        body: i18n.t("task_reminder_body", { title: task.title }),
         sound: true,
       },
       trigger,
     });
   } catch (err) {
-    console.error('❌ Failed to schedule reminder:', err);
+    console.error("❌ Failed to schedule reminder:", err);
   }
 }
 

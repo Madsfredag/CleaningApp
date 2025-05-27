@@ -4,7 +4,7 @@ import { Task } from "../types/Task";
 import { AppUser } from "../types/User";
 import { Ionicons } from "@expo/vector-icons";
 import TaskDetailsModal from "./TaskDetailsModal";
-
+import i18n from "../translations/i18n";
 interface Props {
   task: Task;
   members: AppUser[];
@@ -59,11 +59,13 @@ export default function TaskCard({
           <Text style={[styles.title, task.completed && styles.completedText]}>
             {task.title}
           </Text>
-          <Text style={styles.meta}>Due: {formattedDueDate}</Text>
+          <Text style={styles.meta}>
+            {i18n.t("due")}: {formattedDueDate}
+          </Text>
           <Text style={styles.assigned}>
-            Assigned to:{" "}
+            {i18n.t("assigned_to")}:{" "}
             {assignedUser?.displayName || (
-              <Text style={{ fontStyle: "italic" }}>Anyone</Text>
+              <Text style={{ fontStyle: "italic" }}>{i18n.t("anyone")}</Text>
             )}
           </Text>
         </View>

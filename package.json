@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.1.2",
+    "@react-native-community/datetimepicker": "8.3.0",
     "@react-native-picker/picker": "2.11.0",
     "@react-navigation/bottom-tabs": "^7.3.13",
     "@react-navigation/native": "^7.1.9",
@@ -16,10 +17,16 @@
     "expo": "^53.0.9",
     "expo-camera": "~16.1.6",
     "expo-dev-client": "~5.1.8",
+    "expo-device": "~7.1.4",
     "expo-linear-gradient": "~14.1.4",
     "expo-linking": "~7.1.5",
+    "expo-local-authentication": "~16.0.4",
+    "expo-localization": "~16.1.5",
+    "expo-notifications": "~0.31.2",
+    "expo-secure-store": "~14.2.3",
     "expo-status-bar": "~2.2.3",
     "firebase": "^11.8.1",
+    "i18n-js": "^4.5.1",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-native": "^0.79.2",
@@ -30,12 +37,7 @@
     "react-native-screens": "~4.10.0",
     "react-native-svg": "15.11.2",
     "react-native-vector-icons": "^10.2.0",
-    "text-encoding-polyfill": "^0.6.7",
-    "@react-native-community/datetimepicker": "8.3.0",
-    "expo-local-authentication": "~16.0.4",
-    "expo-secure-store": "~14.2.3",
-    "expo-notifications": "~0.31.2",
-    "expo-device": "~7.1.4"
+    "text-encoding-polyfill": "^0.6.7"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

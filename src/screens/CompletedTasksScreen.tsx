@@ -21,8 +21,11 @@ import {
 import { Task } from "../types/Task";
 import { AppUser } from "../types/User";
 import TaskCard from "../components/TaskCard";
+import i18n from "../translations/i18n";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function CompletedTasksScreen() {
+  const { language } = useLanguage();
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [members, setMembers] = useState<AppUser[]>([]);
@@ -102,9 +105,13 @@ export default function CompletedTasksScreen() {
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.card}>
-            <Text style={styles.title}>Completed Cleaning Tasks</Text>
+            <Text style={styles.title}>
+              {i18n.t("completed_cleaning_tasks")}
+            </Text>
             {tasks.length === 0 ? (
-              <Text style={styles.emptyText}>No archived tasks found.</Text>
+              <Text style={styles.emptyText}>
+                {i18n.t("no_archived_tasks")}
+              </Text>
             ) : (
               tasks.map((task) => (
                 <TaskCard
@@ -139,17 +146,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  titleCard: {
-    backgroundColor: "#ffffffcc",
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 24,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 4 },
   },
   title: {
     fontSize: 22,

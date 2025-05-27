@@ -21,6 +21,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as LocalAuthentication from "expo-local-authentication";
 import * as Notifications from "expo-notifications";
 import { registerForPushNotificationsAsync } from "../utils/notifications";
+import i18n from "../translations/i18n";
+import { useLanguage } from "../context/LanguageContext";
 
 type Props = NativeStackScreenProps<StackParamList, "Signup">;
 
@@ -30,13 +32,13 @@ export default function SignupScreen({ navigation }: Props) {
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const { language, switchLanguage } = useLanguage();
 
   const handleSignup = async () => {
-    if (!username.trim()) return setError("Username is required");
+    if (!username.trim()) return setError(i18n.t("username_required"));
 
     try {
       setLoading(true);
-
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -56,21 +58,17 @@ export default function SignupScreen({ navigation }: Props) {
 
       await setDoc(doc(db, "users", uid), newUser);
 
-      // 🔐 Ask if the user wants to enable biometrics
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
 
       if (hasHardware && isEnrolled) {
         Alert.alert(
-          "Enable Biometric Login?",
-          "Would you like to enable biometric login for faster access?",
+          i18n.t("enable_biometrics_title"),
+          i18n.t("enable_biometrics_description"),
           [
+            { text: i18n.t("no"), style: "cancel" },
             {
-              text: "No",
-              style: "cancel",
-            },
-            {
-              text: "Yes",
+              text: i18n.t("yes"),
               onPress: async () => {
                 try {
                   await AsyncStorage.setItem("biometricEmail", email);
@@ -84,7 +82,6 @@ export default function SignupScreen({ navigation }: Props) {
         );
       }
 
-      // 🔔 Ask for push notification permissions and store token
       const { status } = await Notifications.getPermissionsAsync();
       let finalStatus = status;
 
@@ -97,9 +94,7 @@ export default function SignupScreen({ navigation }: Props) {
       if (finalStatus === "granted") {
         const token = await registerForPushNotificationsAsync();
         if (token) {
-          await updateDoc(doc(db, "users", uid), {
-            pushToken: token,
-          });
+          await updateDoc(doc(db, "users", uid), { pushToken: token });
         }
       }
 
@@ -107,28 +102,37 @@ export default function SignupScreen({ navigation }: Props) {
       navigation.replace(householdId ? "MainTabs" : "JoinHousehold");
     } catch (err: unknown) {
       const errorMessage =
-        err instanceof Error ? err.message : "Unknown signup error";
+        err instanceof Error ? err.message : i18n.t("signup_error_generic");
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSwitchLang = () => {
+    const nextLang = language === "en" ? "da" : "en";
+    switchLanguage(nextLang);
+    Alert.alert(
+      i18n.t("language_switched"),
+      `${i18n.t("current_language")}: ${nextLang}`
+    );
+  };
+
   return (
     <LinearGradient colors={["#c2e9fb", "#a1c4fd"]} style={styles.gradient}>
       <SafeAreaView style={styles.container}>
-        <Text style={styles.title}>Create Account</Text>
+        <Text style={styles.title}>{i18n.t("create_account")}</Text>
 
         <TextInput
           style={styles.input}
-          placeholder="Email"
+          placeholder={i18n.t("email")}
           placeholderTextColor="#555"
           value={email}
           onChangeText={setEmail}
         />
         <TextInput
           style={styles.input}
-          placeholder="Password"
+          placeholder={i18n.t("password")}
           placeholderTextColor="#555"
           secureTextEntry
           value={password}
@@ -136,7 +140,7 @@ export default function SignupScreen({ navigation }: Props) {
         />
         <TextInput
           style={styles.input}
-          placeholder="Username"
+          placeholder={i18n.t("username")}
           placeholderTextColor="#555"
           value={username}
           onChangeText={setUsername}
@@ -152,12 +156,18 @@ export default function SignupScreen({ navigation }: Props) {
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>Sign Up</Text>
+            <Text style={styles.buttonText}>{i18n.t("sign_up")}</Text>
           )}
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-          <Text style={styles.link}>Already have an account? Log in</Text>
+          <Text style={styles.link}>{i18n.t("already_have_account")}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.langBtn} onPress={handleSwitchLang}>
+          <Text style={styles.langText}>
+            {language === "en" ? "Skift til Dansk" : "Switch to English"}
+          </Text>
         </TouchableOpacity>
       </SafeAreaView>
     </LinearGradient>
@@ -165,9 +175,7 @@ export default function SignupScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  gradient: {
-    flex: 1,
-  },
+  gradient: { flex: 1 },
   container: {
     flex: 1,
     padding: 24,
@@ -214,5 +222,17 @@ const styles = StyleSheet.create({
     color: "#d90429",
     marginBottom: 8,
     textAlign: "center",
+  },
+  langBtn: {
+    marginTop: 24,
+    alignSelf: "center",
+    backgroundColor: "#2b2d42",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+  },
+  langText: {
+    color: "#fff",
+    fontWeight: "600",
   },
 });

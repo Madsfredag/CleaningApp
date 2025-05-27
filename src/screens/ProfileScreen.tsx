@@ -2,12 +2,12 @@ import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   SafeAreaView,
   ActivityIndicator,
   TouchableOpacity,
   Modal,
-  TextInput,
   Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -16,9 +16,12 @@ import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase/firebaseConfig";
 import { AppUser } from "../types/User";
 import { useNavigation } from "@react-navigation/native";
+import i18n from "../translations/i18n";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
+  const { language, switchLanguage } = useLanguage();
   const navigation = useNavigation();
   const [appUser, setAppUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,7 +56,7 @@ export default function ProfileScreen() {
       );
       setEditVisible(false);
     } catch {
-      Alert.alert("Error", "Failed to update profile.");
+      Alert.alert(i18n.t("error"), i18n.t("update_profile_failed"));
     }
   };
 
@@ -76,36 +79,52 @@ export default function ProfileScreen() {
     <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
       <SafeAreaView style={styles.container}>
         <View style={styles.card}>
-          <Text style={styles.header}>Your Profile</Text>
+          <Text style={styles.header}>{i18n.t("your_profile")}</Text>
 
-          <Text style={styles.label}>Name</Text>
+          <Text style={styles.label}>{i18n.t("name")}</Text>
           <Text style={styles.value}>{appUser.displayName}</Text>
 
-          <Text style={styles.label}>Email</Text>
+          <Text style={styles.label}>{i18n.t("email")}</Text>
           <Text style={styles.value}>{appUser.email}</Text>
 
-          <Text style={styles.label}>Created</Text>
+          <Text style={styles.label}>{i18n.t("created")}</Text>
           <Text style={styles.value}>
             {appUser.createdAt.toLocaleDateString("da-DK")}
           </Text>
 
-          <Text style={styles.label}>Household ID</Text>
+          <Text style={styles.label}>{i18n.t("household_id")}</Text>
           <Text style={styles.value}>
-            {appUser.householdId || "Not in household"}
+            {appUser.householdId || i18n.t("not_in_household")}
           </Text>
-
-          <Text style={styles.label}>Points</Text>
-          <Text style={styles.value}>{appUser.points ?? 0}</Text>
 
           <View style={styles.btnRow}>
             <TouchableOpacity
               style={styles.editBtn}
               onPress={() => setEditVisible(true)}
             >
-              <Text style={styles.btnText}>Edit Profile</Text>
+              <Text style={styles.btnText}>{i18n.t("edit_profile")}</Text>
             </TouchableOpacity>
+
             <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-              <Text style={styles.btnText}>Log Out</Text>
+              <Text style={styles.btnText}>{i18n.t("log_out")}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.langBtn}
+              onPress={() => {
+                const newLang = language === "en" ? "da" : "en";
+                switchLanguage(newLang);
+                Alert.alert(
+                  i18n.t("language_switched"),
+                  i18n.t("current_language") + ": " + newLang.toUpperCase()
+                );
+              }}
+            >
+              <Text style={styles.btnText}>
+                {language === "en"
+                  ? i18n.t("switch_to_danish")
+                  : i18n.t("switch_to_english")}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -113,25 +132,29 @@ export default function ProfileScreen() {
         <Modal visible={editVisible} animationType="slide" transparent>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Edit Display Name</Text>
+              <Text style={styles.modalTitle}>
+                {i18n.t("edit_display_name")}
+              </Text>
               <TextInput
                 style={styles.input}
                 value={displayName}
                 onChangeText={setDisplayName}
-                placeholder="Display name"
+                placeholder={i18n.t("display_name")}
               />
               <View style={styles.modalButtons}>
                 <TouchableOpacity
                   style={[styles.modalBtn, { backgroundColor: "#ccc" }]}
                   onPress={() => setEditVisible(false)}
                 >
-                  <Text>Cancel</Text>
+                  <Text>{i18n.t("cancel")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.modalBtn, { backgroundColor: "#ff8c42" }]}
                   onPress={handleUpdate}
                 >
-                  <Text style={{ color: "#fff", fontWeight: "600" }}>Save</Text>
+                  <Text style={{ color: "#fff", fontWeight: "600" }}>
+                    {i18n.t("save")}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -184,25 +207,31 @@ const styles = StyleSheet.create({
     color: "#2b2d42",
   },
   btnRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
     marginTop: 28,
+    gap: 12,
   },
   editBtn: {
     backgroundColor: "#4e89ae",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVertical: 12,
     borderRadius: 8,
+    alignItems: "center",
   },
   logoutBtn: {
     backgroundColor: "#d90429",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVertical: 12,
     borderRadius: 8,
+    alignItems: "center",
+  },
+  langBtn: {
+    backgroundColor: "#2b2d42",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
   },
   btnText: {
     color: "#fff",
     fontWeight: "600",
+    fontSize: 16,
   },
   modalOverlay: {
     flex: 1,

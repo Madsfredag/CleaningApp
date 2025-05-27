@@ -1,8 +1,7 @@
-// components/MembersCard.tsx
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { AppUser } from "../types/User";
-
+import i18n from "../translations/i18n";
 interface Props {
   members: AppUser[];
 }
@@ -10,9 +9,9 @@ interface Props {
 export default function MembersCard({ members }: Props) {
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>Household Members</Text>
+      <Text style={styles.title}>{i18n.t("household_members")}</Text>
       {members.length === 0 ? (
-        <Text style={styles.empty}>No members yet</Text>
+        <Text style={styles.empty}>{i18n.t("no_members_yet")}</Text>
       ) : (
         members.map((m) => (
           <Text key={m.id} style={styles.name}>

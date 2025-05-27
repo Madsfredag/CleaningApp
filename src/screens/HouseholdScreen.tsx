@@ -20,9 +20,6 @@ import {
   where,
   getDoc,
   getDocs,
-  deleteDoc,
-  updateDoc,
-  addDoc,
 } from "firebase/firestore";
 import MembersCard from "../components/MembersCard";
 import TaskCard from "../components/TaskCard";
@@ -31,13 +28,14 @@ import { Household } from "../types/Household";
 import { Task } from "../types/Task";
 import { AppUser } from "../types/User";
 import QrCodeCard from "../components/QrCodeCard";
-import { getNextDueDate } from "../utils/getNextDueDate";
 import { archiveOldCompletedTasks } from "../utils/archiveOldCompletedTasks";
 import { handleToggleCompleteTask } from "../utils/handleToggleComplete";
-import { scheduleTaskReminder } from "../utils/scheduleLocalReminder";
 import { deleteTaskWithCleanup } from "../utils/deleteTask";
+import i18n from "../translations/i18n";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function HouseholdScreen() {
+  const { language } = useLanguage();
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [members, setMembers] = useState<AppUser[]>([]);
@@ -68,7 +66,7 @@ export default function HouseholdScreen() {
         });
 
         setupListeners(householdId);
-        await archiveOldCompletedTasks(householdId); // 🧹 Archive logic here
+        await archiveOldCompletedTasks(householdId);
       }
     };
 
@@ -134,16 +132,16 @@ export default function HouseholdScreen() {
   };
 
   const handleDelete = async (task: Task) => {
-    Alert.alert("Delete Task", "Are you sure you want to delete this task?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(i18n.t("delete_task"), i18n.t("delete_task_confirm"), [
+      { text: i18n.t("cancel"), style: "cancel" },
       {
-        text: "Delete",
+        text: i18n.t("delete"),
         style: "destructive",
         onPress: async () => {
           try {
             await deleteTaskWithCleanup(task, user!.id);
           } catch {
-            Alert.alert("Error", "Failed to delete task.");
+            Alert.alert(i18n.t("error"), i18n.t("failed_to_delete_task"));
           }
         },
       },
@@ -154,7 +152,7 @@ export default function HouseholdScreen() {
     try {
       await handleToggleCompleteTask(task);
     } catch {
-      Alert.alert("Error", "Failed to update task.");
+      Alert.alert(i18n.t("error"), i18n.t("failed_to_update_task"));
     }
   };
 
@@ -174,14 +172,14 @@ export default function HouseholdScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.card}>
             <View style={styles.headerRow}>
-              <Text style={styles.title}>Tasks</Text>
+              <Text style={styles.title}>{i18n.t("tasks")}</Text>
               <TouchableOpacity onPress={handleAdd}>
-                <Text style={styles.actionText}>Add Task</Text>
+                <Text style={styles.actionText}>{i18n.t("add_task")}</Text>
               </TouchableOpacity>
             </View>
 
             {tasks.length === 0 ? (
-              <Text style={styles.emptyText}>No tasks yet</Text>
+              <Text style={styles.emptyText}>{i18n.t("no_tasks_yet")}</Text>
             ) : (
               tasks.map((task) => (
                 <TaskCard

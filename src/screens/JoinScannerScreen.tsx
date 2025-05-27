@@ -12,6 +12,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { joinHouseholdSafely } from "../utils/joinHouseholdSafely";
+import i18n from "../translations/i18n";
 
 export default function JoinScannerScreen() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -36,9 +37,9 @@ export default function JoinScannerScreen() {
     const code = match?.[1];
 
     if (!code) {
-      Alert.alert("Invalid QR Code", "Could not extract a valid code.", [
+      Alert.alert(i18n.t("invalid_qr"), i18n.t("invalid_qr_msg"), [
         {
-          text: "OK",
+          text: i18n.t("ok"),
           onPress: () => {
             lock.current = false;
             setScanned(false);
@@ -51,18 +52,18 @@ export default function JoinScannerScreen() {
     try {
       const joined = await joinHouseholdSafely(code.toUpperCase(), user.id);
       if (joined) {
-        Alert.alert("Success", "You joined the household.", [
+        Alert.alert(i18n.t("success"), i18n.t("joined_successfully"), [
           {
-            text: "OK",
+            text: i18n.t("ok"),
             onPress: () => {
               navigation.navigate("MainTabs" as never);
             },
           },
         ]);
       } else {
-        Alert.alert("Failed", "Could not join the household.", [
+        Alert.alert(i18n.t("failed"), i18n.t("join_failed"), [
           {
-            text: "OK",
+            text: i18n.t("ok"),
             onPress: () => {
               lock.current = false;
               setScanned(false);
@@ -72,9 +73,9 @@ export default function JoinScannerScreen() {
       }
     } catch (error) {
       console.error(error);
-      Alert.alert("Error", "Something went wrong.", [
+      Alert.alert(i18n.t("error"), i18n.t("generic_error"), [
         {
-          text: "OK",
+          text: i18n.t("ok"),
           onPress: () => {
             lock.current = false;
             setScanned(false);
@@ -89,11 +90,9 @@ export default function JoinScannerScreen() {
   if (!permission.granted) {
     return (
       <SafeAreaView style={styles.container}>
-        <Text style={styles.message}>
-          We need your permission to access the camera.
-        </Text>
+        <Text style={styles.message}>{i18n.t("camera_permission_msg")}</Text>
         <Pressable style={styles.button} onPress={requestPermission}>
-          <Text style={styles.buttonText}>Grant Permission</Text>
+          <Text style={styles.buttonText}>{i18n.t("grant_permission")}</Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -118,7 +117,7 @@ export default function JoinScannerScreen() {
               setScanned(false);
             }}
           >
-            <Text style={styles.buttonText}>Scan Again</Text>
+            <Text style={styles.buttonText}>{i18n.t("scan_again")}</Text>
           </Pressable>
         )}
       </SafeAreaView>

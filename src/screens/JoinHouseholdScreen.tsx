@@ -15,6 +15,7 @@ import {
   createHousehold,
   joinHouseholdByCode,
 } from "../firestore/HouseholdService";
+import i18n from "../translations/i18n";
 
 export default function JoinHouseholdScreen({ navigation }: any) {
   const { user } = useAuth();
@@ -24,17 +25,17 @@ export default function JoinHouseholdScreen({ navigation }: any) {
   const [createdCode, setCreatedCode] = useState<string | null>(null);
 
   const handleCreate = async () => {
-    if (!name.trim()) return setError("Enter a household name");
+    if (!name.trim()) return setError(i18n.t("enter_household_name"));
     try {
       const code = await createHousehold(name.trim(), user!.id);
       setCreatedCode(code);
     } catch {
-      setError("Could not create household");
+      setError(i18n.t("create_household_error"));
     }
   };
 
   const handleJoin = async () => {
-    if (!code.trim()) return setError("Enter a code");
+    if (!code.trim()) return setError(i18n.t("enter_code"));
     const householdId = await joinHouseholdByCode(
       code.trim().toUpperCase(),
       user!.id
@@ -42,7 +43,7 @@ export default function JoinHouseholdScreen({ navigation }: any) {
     if (householdId) {
       navigation.replace("MainTabs");
     } else {
-      setError("Household not found");
+      setError(i18n.t("household_not_found"));
     }
   };
 
@@ -50,7 +51,7 @@ export default function JoinHouseholdScreen({ navigation }: any) {
     return (
       <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
         <SafeAreaView style={styles.centered}>
-          <Text>Loading user...</Text>
+          <Text>{i18n.t("loading_user")}</Text>
         </SafeAreaView>
       </LinearGradient>
     );
@@ -63,40 +64,42 @@ export default function JoinHouseholdScreen({ navigation }: any) {
           <View style={styles.card}>
             {!createdCode ? (
               <>
-                <Text style={styles.title}>Create Household</Text>
+                <Text style={styles.title}>{i18n.t("create_household")}</Text>
                 <TextInput
-                  placeholder="Household name"
+                  placeholder={i18n.t("household_name")}
                   value={name}
                   onChangeText={setName}
                   style={styles.input}
                 />
                 <TouchableOpacity style={styles.button} onPress={handleCreate}>
-                  <Text style={styles.buttonText}>Create</Text>
+                  <Text style={styles.buttonText}>{i18n.t("create")}</Text>
                 </TouchableOpacity>
 
-                <Text style={styles.subtitle}>Or Join by Code</Text>
+                <Text style={styles.subtitle}>{i18n.t("or_join_by_code")}</Text>
                 <TextInput
-                  placeholder="6-character code"
+                  placeholder={i18n.t("code_placeholder")}
                   value={code}
                   onChangeText={setCode}
                   style={styles.input}
                 />
                 <TouchableOpacity style={styles.button} onPress={handleJoin}>
-                  <Text style={styles.buttonText}>Join</Text>
+                  <Text style={styles.buttonText}>{i18n.t("join")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.button, styles.outline]}
                   onPress={() => navigation.navigate("JoinScanner")}
                 >
                   <Text style={[styles.buttonText, styles.outlineText]}>
-                    Scan QR to Join
+                    {i18n.t("scan_qr_to_join")}
                   </Text>
                 </TouchableOpacity>
               </>
             ) : (
               <>
-                <Text style={styles.title}>Share this QR Code</Text>
-                <Text style={styles.codeText}>Code: {createdCode}</Text>
+                <Text style={styles.title}>{i18n.t("share_qr")}</Text>
+                <Text style={styles.codeText}>
+                  {i18n.t("code")}: {createdCode}
+                </Text>
                 <View style={styles.qrContainer}>
                   <QRCode
                     value={`cleanapp://join?code=${createdCode}`}
@@ -107,7 +110,9 @@ export default function JoinHouseholdScreen({ navigation }: any) {
                   style={styles.button}
                   onPress={() => navigation.navigate("MainTabs")}
                 >
-                  <Text style={styles.buttonText}>Continue to Home</Text>
+                  <Text style={styles.buttonText}>
+                    {i18n.t("continue_to_home")}
+                  </Text>
                 </TouchableOpacity>
               </>
             )}

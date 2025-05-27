@@ -17,9 +17,9 @@ import { StackParamList } from "../types/Navigation";
 import { getUserHouseholdId } from "../firestore/HouseholdService";
 import * as LocalAuthentication from "expo-local-authentication";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Notifications from "expo-notifications";
 import { registerForPushNotificationsAsync } from "../utils/notifications";
 import { doc, updateDoc } from "firebase/firestore";
+import i18n from "../translations/i18n";
 
 type Props = NativeStackScreenProps<StackParamList, "Login">;
 
@@ -54,7 +54,6 @@ export default function LoginScreen({ navigation }: Props) {
       );
       const uid = userCredential.user.uid;
 
-      // 📱 Register and store push token
       const token = await registerForPushNotificationsAsync();
       if (token) {
         await updateDoc(doc(db, "users", uid), { pushToken: token });
@@ -64,7 +63,7 @@ export default function LoginScreen({ navigation }: Props) {
       navigation.replace(householdId ? "MainTabs" : "JoinHousehold");
     } catch (err: unknown) {
       const errorMessage =
-        err instanceof Error ? err.message : "Unknown login error";
+        err instanceof Error ? err.message : i18n.t("unknown_login_error");
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -74,7 +73,7 @@ export default function LoginScreen({ navigation }: Props) {
   const handleBiometricLogin = async () => {
     try {
       const authResult = await LocalAuthentication.authenticateAsync({
-        promptMessage: "Authenticate to login",
+        promptMessage: i18n.t("biometric_prompt"),
       });
 
       if (!authResult.success) return;
@@ -83,7 +82,7 @@ export default function LoginScreen({ navigation }: Props) {
       const savedPassword = await AsyncStorage.getItem("biometricPassword");
 
       if (!savedEmail || !savedPassword) {
-        Alert.alert("Biometric Error", "No saved credentials found.");
+        Alert.alert(i18n.t("biometric_error"), i18n.t("no_saved_credentials"));
         return;
       }
 
@@ -96,7 +95,6 @@ export default function LoginScreen({ navigation }: Props) {
 
       const uid = userCredential.user.uid;
 
-      // 📱 Register and store push token
       const token = await registerForPushNotificationsAsync();
       if (token) {
         await updateDoc(doc(db, "users", uid), { pushToken: token });
@@ -104,8 +102,8 @@ export default function LoginScreen({ navigation }: Props) {
 
       const householdId = await getUserHouseholdId(uid);
       navigation.replace(householdId ? "MainTabs" : "JoinHousehold");
-    } catch (err) {
-      Alert.alert("Biometric Login Failed", "Please try again.");
+    } catch {
+      Alert.alert(i18n.t("biometric_failed"), i18n.t("try_again"));
     } finally {
       setLoading(false);
     }
@@ -114,17 +112,17 @@ export default function LoginScreen({ navigation }: Props) {
   return (
     <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
       <SafeAreaView style={styles.container}>
-        <Text style={styles.title}>Welcome Back</Text>
+        <Text style={styles.title}>{i18n.t("welcome_back")}</Text>
         <TextInput
           style={styles.input}
-          placeholder="Email"
+          placeholder={i18n.t("email")}
           placeholderTextColor="#555"
           value={email}
           onChangeText={setEmail}
         />
         <TextInput
           style={styles.input}
-          placeholder="Password"
+          placeholder={i18n.t("password")}
           placeholderTextColor="#555"
           secureTextEntry
           value={password}
@@ -139,7 +137,7 @@ export default function LoginScreen({ navigation }: Props) {
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>Log In</Text>
+            <Text style={styles.buttonText}>{i18n.t("log_in")}</Text>
           )}
         </TouchableOpacity>
 
@@ -149,12 +147,14 @@ export default function LoginScreen({ navigation }: Props) {
             onPress={handleBiometricLogin}
             disabled={loading}
           >
-            <Text style={styles.buttonText}>Log In with Biometrics</Text>
+            <Text style={styles.buttonText}>
+              {i18n.t("log_in_with_biometrics")}
+            </Text>
           </TouchableOpacity>
         )}
 
         <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
-          <Text style={styles.link}>Don’t have an account? Sign up</Text>
+          <Text style={styles.link}>{i18n.t("no_account_signup")}</Text>
         </TouchableOpacity>
       </SafeAreaView>
     </LinearGradient>

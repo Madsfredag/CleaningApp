@@ -18,6 +18,8 @@ import { Task, TaskPriority } from "../types/Task";
 import { AppUser } from "../types/User";
 import { handleToggleCompleteTask } from "../utils/handleToggleComplete";
 import { deleteTaskWithCleanup } from "../utils/deleteTask";
+import i18n from "../translations/i18n";
+import { useLanguage } from "../context/LanguageContext";
 
 const priorityOrder: Record<NonNullable<TaskPriority>, number> = {
   high: 0,
@@ -26,6 +28,7 @@ const priorityOrder: Record<NonNullable<TaskPriority>, number> = {
 };
 
 export default function HomeScreen({ navigation }: any) {
+  const { language } = useLanguage();
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [members, setMembers] = useState<AppUser[]>([]);
@@ -93,21 +96,21 @@ export default function HomeScreen({ navigation }: any) {
     try {
       await handleToggleCompleteTask(task);
     } catch {
-      Alert.alert("Error", "Failed to update task.");
+      Alert.alert(i18n.t("error"), i18n.t("failed_to_update_task"));
     }
   };
 
   const handleDelete = async (task: Task) => {
-    Alert.alert("Delete Task", "Are you sure you want to delete this task?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(i18n.t("delete_task"), i18n.t("delete_task_confirm"), [
+      { text: i18n.t("cancel"), style: "cancel" },
       {
-        text: "Delete",
+        text: i18n.t("delete"),
         style: "destructive",
         onPress: async () => {
           try {
             await deleteTaskWithCleanup(task, user!.id);
           } catch {
-            Alert.alert("Error", "Failed to delete task.");
+            Alert.alert(i18n.t("error"), i18n.t("failed_to_delete_task"));
           }
         },
       },
@@ -147,7 +150,7 @@ export default function HomeScreen({ navigation }: any) {
     <View style={styles.taskGroupCard}>
       <Text style={styles.groupTitle}>{label}</Text>
       {group.length === 0 ? (
-        <Text style={styles.emptyText}>No tasks.</Text>
+        <Text style={styles.emptyText}>{i18n.t("no_tasks")}</Text>
       ) : (
         group
           .sort((a, b) => {
@@ -183,10 +186,10 @@ export default function HomeScreen({ navigation }: any) {
     <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
-          <Text style={styles.title}>Your Cleaning Tasks</Text>
-          {renderGroup("Today", todayTasks)}
-          {renderGroup("This Week", weekTasks)}
-          {renderGroup("Upcoming", upcomingTasks)}
+          <Text style={styles.title}>{i18n.t("your_cleaning_tasks")}</Text>
+          {renderGroup(i18n.t("today"), todayTasks)}
+          {renderGroup(i18n.t("this_week"), weekTasks)}
+          {renderGroup(i18n.t("upcoming"), upcomingTasks)}
         </ScrollView>
 
         <TaskModal

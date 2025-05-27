@@ -1,10 +1,11 @@
 {
   "expo": {
-    "name": "cleaning-app",
+    "name": "Scrubio",
     "slug": "cleaning-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/scrubio-logo.png",
+    "scheme": "scrubio",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -35,6 +36,6 @@
         "projectId": "e317c3c1-9de2-490a-8e98-8076e48d06bc"
       }
     },
-    "plugins": ["expo-secure-store", "expo-notifications"]
+    "plugins": ["expo-secure-store", "expo-notifications", "expo-localization"]
   }
 }

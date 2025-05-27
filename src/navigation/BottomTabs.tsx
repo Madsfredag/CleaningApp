@@ -1,15 +1,16 @@
-// navigation/BottomTabs.tsx
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import HomeScreen from "../screens/HomeScreen";
 import HouseholdScreen from "../screens/HouseholdScreen";
-import ProfileScreen from "../screens/ProfileScreen"; // create this screen if needed
-import { Ionicons } from "@expo/vector-icons";
+import ProfileScreen from "../screens/ProfileScreen";
 import CompletedTasksScreen from "../screens/CompletedTasksScreen";
-
+import { Ionicons } from "@expo/vector-icons";
+import i18n from "../translations/i18n";
+import { useLanguage } from "../context/LanguageContext";
 const Tab = createBottomTabNavigator();
 
 export default function BottomTabs() {
+  const { language } = useLanguage();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -24,6 +25,14 @@ export default function BottomTabs() {
           else if (route.name === "Completed") iconName = "checkmark-done";
           return <Ionicons name={iconName} size={size} color={color} />;
         },
+        tabBarLabel:
+          route.name === "Home"
+            ? i18n.t("tab_home")
+            : route.name === "Household"
+            ? i18n.t("tab_household")
+            : route.name === "Completed"
+            ? i18n.t("tab_completed")
+            : i18n.t("tab_profile"),
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />

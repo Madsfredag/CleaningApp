@@ -3,7 +3,7 @@ import { Modal, View, Text, StyleSheet, Pressable } from "react-native";
 import { Task } from "../types/Task";
 import { AppUser } from "../types/User";
 import { Ionicons } from "@expo/vector-icons";
-
+import i18n from "../translations/i18n";
 interface Props {
   visible: boolean;
   onClose: () => void;
@@ -32,29 +32,31 @@ export default function TaskDetailsModal({
         <View style={styles.modal}>
           <Text style={styles.title}>{task.title}</Text>
 
-          <Text style={styles.label}>Assigned to:</Text>
+          <Text style={styles.label}>{i18n.t("assigned_to")}:</Text>
           <Text style={styles.value}>
-            {assignedUser?.displayName || "Unassigned"}
+            {assignedUser?.displayName || i18n.t("unassigned")}
           </Text>
 
-          <Text style={styles.label}>Due Date:</Text>
+          <Text style={styles.label}>{i18n.t("due_date")}:</Text>
           <Text style={styles.value}>{dueDate}</Text>
 
-          <Text style={styles.label}>Details:</Text>
+          <Text style={styles.label}>{i18n.t("details")}:</Text>
           <Text style={styles.value}>
-            {task.details?.trim() ? task.details : "No details provided."}
+            {task.details?.trim() ? task.details : i18n.t("no_details")}
           </Text>
 
-          <Text style={styles.label}>Repeat:</Text>
+          <Text style={styles.label}>{i18n.t("repeat")}:</Text>
           <Text style={styles.value}>
             {task.repeat
-              ? `${task.repeat.interval} × ${task.repeat.frequency}`
-              : "One-time task"}
+              ? `${task.repeat.interval} × ${i18n.t(
+                  "repeat_" + task.repeat.frequency
+                )}`
+              : i18n.t("one_time_task")}
           </Text>
 
-          <Text style={styles.label}>Completed:</Text>
+          <Text style={styles.label}>{i18n.t("completed")}:</Text>
           <Text style={styles.value}>
-            {task.completed ? "Yes ✅" : "No ❌"}
+            {task.completed ? i18n.t("yes") + " ✅" : i18n.t("no") + " ❌"}
           </Text>
 
           <Pressable onPress={onClose} style={styles.closeBtn}>

@@ -1,13 +1,7 @@
 import React from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { TaskRepeat, TaskFrequency } from "../types/Task";
-
+import i18n from "../translations/i18n";
 interface Props {
   value: TaskRepeat | null;
   onChange: (repeat: TaskRepeat | null) => void;
@@ -37,7 +31,7 @@ export default function RepeatSelector({ value, onChange }: Props) {
 
   return (
     <View style={styles.wrapper}>
-      <Text style={styles.label}>Repeat</Text>
+      <Text style={styles.label}>{i18n.t("repeat")}</Text>
       <View style={styles.frequencyGroup}>
         {FREQUENCIES.map((option) => (
           <TouchableOpacity
@@ -54,7 +48,7 @@ export default function RepeatSelector({ value, onChange }: Props) {
                 frequency === option && styles.frequencyTextSelected,
               ]}
             >
-              {option.charAt(0).toUpperCase() + option.slice(1)}
+              {i18n.t(`repeat_${option}`)}
             </Text>
           </TouchableOpacity>
         ))}
@@ -62,7 +56,7 @@ export default function RepeatSelector({ value, onChange }: Props) {
 
       {frequency !== "once" && (
         <View style={styles.intervalContainer}>
-          <Text style={styles.label}>Every</Text>
+          <Text style={styles.label}>{i18n.t("every")}</Text>
           <View style={styles.incrementer}>
             <TouchableOpacity onPress={decrement} style={styles.controlButton}>
               <Text style={styles.controlText}>−</Text>
@@ -72,13 +66,7 @@ export default function RepeatSelector({ value, onChange }: Props) {
               <Text style={styles.controlText}>＋</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.label}>
-            {frequency === "daily"
-              ? " day(s)"
-              : frequency === "weekly"
-              ? " week(s)"
-              : " month(s)"}
-          </Text>
+          <Text style={styles.label}>{i18n.t(`unit_${frequency}`)}</Text>
         </View>
       )}
     </View>

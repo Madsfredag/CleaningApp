@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { Household } from "../types/Household";
 import { useNavigation } from "@react-navigation/native";
-
+import i18n from "../translations/i18n";
 interface Props {
   household: Household;
 }
@@ -14,7 +14,7 @@ export default function QrCodeCard({ household }: Props) {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>Your Household Code</Text>
+      <Text style={styles.title}>{i18n.t("your_household_code")}</Text>
       <Text style={styles.code}>{household.code}</Text>
 
       {showQR && (
@@ -28,7 +28,7 @@ export default function QrCodeCard({ household }: Props) {
         onPress={() => setShowQR(!showQR)}
       >
         <Text style={styles.qrButtonText}>
-          {showQR ? "Hide QR Code" : "Show QR Code"}
+          {showQR ? i18n.t("hide_qr_code") : i18n.t("show_qr_code")}
         </Text>
       </TouchableOpacity>
 
@@ -37,7 +37,7 @@ export default function QrCodeCard({ household }: Props) {
         onPress={() => navigation.navigate("JoinScanner" as never)}
       >
         <Text style={styles.scanButtonText}>
-          Scan QR to Join a new Household
+          {i18n.t("scan_qr_to_join_new_household")}
         </Text>
       </TouchableOpacity>
     </View>
