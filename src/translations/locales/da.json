@@ -127,5 +127,7 @@
   "switch_to_danish": "Skift til Dansk",
   "switch_to_english": "Skift til Engelsk",
   "language_switched": "Sprog skiftet",
-  "current_language": "Aktuelt sprog"
+  "current_language": "Aktuelt sprog",
+  "delete_account": "Slet konto",
+  "delete_account_confirm": "Er du sikker på, at du vil slette din konto? Denne handling kan ikke fortrydes."
 }

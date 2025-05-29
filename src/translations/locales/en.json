@@ -127,5 +127,7 @@
   "switch_to_danish": "Switch to Danish",
   "switch_to_english": "Switch to English",
   "language_switched": "Language switched",
-  "current_language": "Current language"
+  "current_language": "Current language",
+  "delete_account": "Delete Account",
+  "delete_account_confirm": "Are you sure you want to delete your account? This action cannot be undone."
 }

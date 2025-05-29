@@ -12,8 +12,9 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../context/AuthContext";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { db } from "../firebase/firebaseConfig";
+import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { deleteUser } from "firebase/auth";
+import { db, auth } from "../firebase/firebaseConfig";
 import { AppUser } from "../types/User";
 import { useNavigation } from "@react-navigation/native";
 import i18n from "../translations/i18n";
@@ -65,6 +66,27 @@ export default function ProfileScreen() {
     navigation.navigate("Login" as never);
   };
 
+  const handleDeleteAccount = () => {
+    Alert.alert(i18n.t("delete_account"), i18n.t("delete_account_confirm"), [
+      { text: i18n.t("cancel"), style: "cancel" },
+      {
+        text: i18n.t("delete"),
+        style: "destructive",
+        onPress: async () => {
+          try {
+            if (user) {
+              await deleteDoc(doc(db, "users", user.id));
+              await deleteUser(auth.currentUser!);
+              navigation.navigate("Login" as never);
+            }
+          } catch (error) {
+            Alert.alert(i18n.t("error"), i18n.t("delete_account_failed"));
+          }
+        },
+      },
+    ]);
+  };
+
   if (!user || loading || !appUser) {
     return (
       <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
@@ -107,6 +129,13 @@ export default function ProfileScreen() {
 
             <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
               <Text style={styles.btnText}>{i18n.t("log_out")}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.deleteBtn}
+              onPress={handleDeleteAccount}
+            >
+              <Text style={styles.btnText}>{i18n.t("delete_account")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -218,6 +247,12 @@ const styles = StyleSheet.create({
   },
   logoutBtn: {
     backgroundColor: "#d90429",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  deleteBtn: {
+    backgroundColor: "#555",
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: "center",
