@@ -15,7 +15,6 @@
 - 🔔 Push & local notifications
 - 📸 Join household via QR code
 - 🔄 Real-time updates with Firestore
-- 🧼 Beautiful UI with custom theming
 
 ---
 
@@ -27,7 +26,7 @@
 - [AsyncStorage](https://github.com/react-native-async-storage/async-storage)
 - [expo-notifications](https://docs.expo.dev/versions/latest/sdk/notifications/)
 - [i18n localization](https://www.i18next.com/)
-- TypeScript everywhere 💙
+- TypeScript everywhere
 
 ---
 
