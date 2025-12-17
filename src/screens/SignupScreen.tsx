@@ -36,6 +36,7 @@ export default function SignupScreen({ navigation }: Props) {
 
   const handleSignup = async () => {
     if (!username.trim()) return setError(i18n.t("username_required"));
+    if (!email.trim()) return setError(i18n.t("email_required"));
 
     try {
       setLoading(true);
@@ -128,7 +129,9 @@ export default function SignupScreen({ navigation }: Props) {
           placeholder={i18n.t("email")}
           placeholderTextColor="#555"
           value={email}
-          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          onChangeText={(text) => setEmail(text.trim().toLowerCase())}
         />
         <TextInput
           style={styles.input}

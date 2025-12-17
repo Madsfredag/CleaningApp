@@ -129,5 +129,13 @@
   "language_switched": "Language switched",
   "current_language": "Current language",
   "delete_account": "Delete Account",
-  "delete_account_confirm": "Are you sure you want to delete your account? This action cannot be undone."
+  "delete_account_confirm": "Are you sure you want to delete your account? This action cannot be undone.",
+  "forgot_password": "Forgot password?",
+  "enter_email_for_reset": "Please enter your email first",
+  "reset_email_sent": "Reset email sent",
+  "check_your_email": "Check your inbox to reset your password",
+  "reset_failed": "Failed to send reset email",
+  "too_many_requests": "Too many requests. Please wait before trying again.",
+  "email_required": "Email is required",
+  "login_credentials_required": "Email and password are required"
 }

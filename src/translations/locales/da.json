@@ -129,5 +129,13 @@
   "language_switched": "Sprog skiftet",
   "current_language": "Aktuelt sprog",
   "delete_account": "Slet konto",
-  "delete_account_confirm": "Er du sikker på, at du vil slette din konto? Denne handling kan ikke fortrydes."
+  "delete_account_confirm": "Er du sikker på, at du vil slette din konto? Denne handling kan ikke fortrydes.",
+  "forgot_password": "Glemt adgangskode?",
+  "enter_email_for_reset": "Indtast din email først",
+  "reset_email_sent": "Nulstillingsmail sendt",
+  "check_your_email": "Tjek din indbakke for at nulstille adgangskoden",
+  "reset_failed": "Kunne ikke sende nulstillingsmail",
+  "too_many_requests": "For mange anmodninger. Vent venligst før du prøver igen.",
+  "email_required": "Email er påkrævet",
+  "login_credentials_required": "Email og adgangskode er påkrævet"
 }

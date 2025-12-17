@@ -20,6 +20,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { registerForPushNotificationsAsync } from "../utils/notifications";
 import { doc, updateDoc } from "firebase/firestore";
 import i18n from "../translations/i18n";
+import { sendPasswordResetEmail } from "firebase/auth";
 
 type Props = NativeStackScreenProps<StackParamList, "Login">;
 
@@ -45,6 +46,10 @@ export default function LoginScreen({ navigation }: Props) {
   }, []);
 
   const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      setError(i18n.t("login_credentials_required"));
+      return;
+    }
     try {
       setLoading(true);
       const userCredential = await signInWithEmailAndPassword(
@@ -65,6 +70,30 @@ export default function LoginScreen({ navigation }: Props) {
       const errorMessage =
         err instanceof Error ? err.message : i18n.t("unknown_login_error");
       setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (loading) return;
+
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      Alert.alert(i18n.t("error"), i18n.t("enter_email_for_reset"));
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await sendPasswordResetEmail(auth, cleanEmail);
+      Alert.alert(i18n.t("reset_email_sent"), i18n.t("check_your_email"));
+    } catch (error: any) {
+      if (error.code === "auth/too-many-requests") {
+        Alert.alert(i18n.t("error"), i18n.t("too_many_requests"));
+      } else {
+        Alert.alert(i18n.t("error"), i18n.t("reset_failed"));
+      }
     } finally {
       setLoading(false);
     }
@@ -118,8 +147,11 @@ export default function LoginScreen({ navigation }: Props) {
           placeholder={i18n.t("email")}
           placeholderTextColor="#555"
           value={email}
-          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          onChangeText={(text) => setEmail(text.trim().toLowerCase())}
         />
+
         <TextInput
           style={styles.input}
           placeholder={i18n.t("password")}
@@ -128,6 +160,10 @@ export default function LoginScreen({ navigation }: Props) {
           value={password}
           onChangeText={setPassword}
         />
+        <TouchableOpacity onPress={handleResetPassword}>
+          <Text style={styles.forgotPassword}>{i18n.t("forgot_password")}</Text>
+        </TouchableOpacity>
+
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <TouchableOpacity
           style={styles.button}
@@ -215,5 +251,11 @@ const styles = StyleSheet.create({
     color: "#d90429",
     marginBottom: 8,
     textAlign: "center",
+  },
+  forgotPassword: {
+    textAlign: "center",
+    color: "#2b2d42",
+    marginBottom: 20,
+    textDecorationLine: "underline",
   },
 });
