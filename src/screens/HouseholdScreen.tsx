@@ -183,6 +183,9 @@ export default function HouseholdScreen() {
     <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
+          <Text style={styles.houseHoldTitle}>
+            {i18n.t("household_cleaning_tasks")}
+          </Text>
           {/* OVERDUE */}
           {overdueTasks.length > 0 && (
             <View style={styles.overdueCard}>
@@ -225,7 +228,7 @@ export default function HouseholdScreen() {
 
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
-  container: { flex: 1 },
+  container: { flex: 1, marginTop: -16 },
   scrollContent: { padding: 16, paddingBottom: 100 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
 
@@ -248,6 +251,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 12,
+  },
+
+  houseHoldTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 10,
+    textAlign: "center",
+    color: "#1a1a2e",
   },
 
   title: {
