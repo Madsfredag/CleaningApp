@@ -24,19 +24,22 @@ import {
 import MembersCard from "../components/MembersCard";
 import TaskCard from "../components/TaskCard";
 import TaskModal from "../components/TaskModal";
+import QrCodeCard from "../components/QrCodeCard";
 import { Household } from "../types/Household";
 import { Task } from "../types/Task";
 import { AppUser } from "../types/User";
-import QrCodeCard from "../components/QrCodeCard";
 import { archiveOldCompletedTasks } from "../utils/archiveOldCompletedTasks";
 import { handleToggleCompleteTask } from "../utils/handleToggleComplete";
 import { deleteTaskWithCleanup } from "../utils/deleteTask";
+import { handleOverdueRecurringTasks } from "../utils/handleOverdueRecurringTasks";
 import i18n from "../translations/i18n";
 import { useLanguage } from "../context/LanguageContext";
+import { isTaskOverdue } from "../utils/isTaskOverdue";
 
 export default function HouseholdScreen() {
-  const { language } = useLanguage();
   const { user } = useAuth();
+  const { language } = useLanguage();
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [members, setMembers] = useState<AppUser[]>([]);
   const [household, setHousehold] = useState<Household | null>(null);
@@ -52,22 +55,25 @@ export default function HouseholdScreen() {
         where("members", "array-contains", user.id)
       );
       const snap = await getDocs(q);
-      if (!snap.empty) {
-        const householdDoc = snap.docs[0];
-        const householdData = householdDoc.data();
-        const householdId = householdDoc.id;
+      if (snap.empty) return;
 
-        setHousehold({
-          id: householdId,
-          name: householdData.name,
-          code: householdData.code,
-          ownerId: householdData.ownerId,
-          members: householdData.members,
-        });
+      const householdDoc = snap.docs[0];
+      const householdId = householdDoc.id;
+      const data = householdDoc.data();
 
-        setupListeners(householdId);
-        await archiveOldCompletedTasks(householdId);
-      }
+      setHousehold({
+        id: householdId,
+        name: data.name,
+        code: data.code,
+        ownerId: data.ownerId,
+        members: data.members,
+      });
+
+      setupListeners(householdId);
+
+      // background maintenance
+      await archiveOldCompletedTasks(householdId);
+      await handleOverdueRecurringTasks(householdId);
     };
 
     fetchHousehold();
@@ -75,49 +81,38 @@ export default function HouseholdScreen() {
 
   const setupListeners = (householdId: string) => {
     const taskRef = collection(db, "households", householdId, "tasks");
+
     const unsubscribeTasks = onSnapshot(taskRef, (snap) => {
       const loadedTasks = snap.docs.map(
-        (doc) => ({ id: doc.id, ...doc.data() } as Task)
+        (d) => ({ id: d.id, ...d.data() } as Task)
       );
-
-      const priorityOrder: Record<NonNullable<Task["priority"]>, number> = {
-        high: 0,
-        medium: 1,
-        low: 2,
-      };
-
-      const sorted = [...loadedTasks].sort((a, b) => {
-        const aRank = a.priority ? priorityOrder[a.priority] : 3;
-        const bRank = b.priority ? priorityOrder[b.priority] : 3;
-        return aRank - bRank;
-      });
-
-      setTasks(sorted);
+      setTasks(loadedTasks);
     });
 
-    const unsubHousehold = onSnapshot(
+    const unsubscribeHousehold = onSnapshot(
       doc(db, "households", householdId),
       async (docSnap) => {
         const data = docSnap.data();
-        if (data?.members) {
-          const userDocs = await Promise.all(
-            data.members.map(async (uid: string) => {
-              const userDoc = await getDoc(doc(db, "users", uid));
-              if (!userDoc.exists()) return null;
-              return {
-                id: userDoc.id,
-                ...(userDoc.data() as Omit<AppUser, "id">),
-              };
-            })
-          );
-          setMembers(userDocs.filter(Boolean) as AppUser[]);
-        }
+        if (!data?.members) return;
+
+        const userDocs = await Promise.all(
+          data.members.map(async (uid: string) => {
+            const userDoc = await getDoc(doc(db, "users", uid));
+            if (!userDoc.exists()) return null;
+            return {
+              id: userDoc.id,
+              ...(userDoc.data() as Omit<AppUser, "id">),
+            };
+          })
+        );
+
+        setMembers(userDocs.filter(Boolean) as AppUser[]);
       }
     );
 
     return () => {
       unsubscribeTasks();
-      unsubHousehold();
+      unsubscribeHousehold();
     };
   };
 
@@ -131,7 +126,7 @@ export default function HouseholdScreen() {
     setShowModal(true);
   };
 
-  const handleDelete = async (task: Task) => {
+  const handleDelete = (task: Task) => {
     Alert.alert(i18n.t("delete_task"), i18n.t("delete_task_confirm"), [
       { text: i18n.t("cancel"), style: "cancel" },
       {
@@ -166,10 +161,37 @@ export default function HouseholdScreen() {
     );
   }
 
+  // ---------- UI grouping ----------
+
+  const overdueTasks = tasks.filter((t) => !t.completed && isTaskOverdue(t));
+
+  const normalTasks = tasks.filter((t) => !overdueTasks.includes(t));
+
+  const renderTaskList = (list: Task[]) =>
+    list.map((task) => (
+      <TaskCard
+        key={task.id}
+        task={task}
+        members={members}
+        onEdit={() => handleEdit(task)}
+        onDelete={() => handleDelete(task)}
+        onToggleComplete={() => toggleComplete(task)}
+      />
+    ));
+
   return (
     <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
+          {/* OVERDUE */}
+          {overdueTasks.length > 0 && (
+            <View style={styles.overdueCard}>
+              <Text style={styles.overdueTitle}>{i18n.t("overdue_tasks")}</Text>
+              {renderTaskList(overdueTasks)}
+            </View>
+          )}
+
+          {/* NORMAL TASKS */}
           <View style={styles.card}>
             <View style={styles.headerRow}>
               <Text style={styles.title}>{i18n.t("tasks")}</Text>
@@ -178,19 +200,10 @@ export default function HouseholdScreen() {
               </TouchableOpacity>
             </View>
 
-            {tasks.length === 0 ? (
+            {normalTasks.length === 0 ? (
               <Text style={styles.emptyText}>{i18n.t("no_tasks_yet")}</Text>
             ) : (
-              tasks.map((task) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  members={members}
-                  onEdit={() => handleEdit(task)}
-                  onDelete={() => handleDelete(task)}
-                  onToggleComplete={() => toggleComplete(task)}
-                />
-              ))
+              renderTaskList(normalTasks)
             )}
           </View>
 
@@ -201,8 +214,8 @@ export default function HouseholdScreen() {
         <TaskModal
           visible={showModal}
           onClose={() => setShowModal(false)}
-          household={household}
           task={selectedTask}
+          household={household}
           members={members}
         />
       </SafeAreaView>
@@ -211,47 +224,50 @@ export default function HouseholdScreen() {
 }
 
 const styles = StyleSheet.create({
-  gradient: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 100,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  gradient: { flex: 1 },
+  container: { flex: 1 },
+  scrollContent: { padding: 16, paddingBottom: 100 },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+
   card: {
     backgroundColor: "#ffffffcc",
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 4 },
   },
+
+  overdueCard: {
+    backgroundColor: "#ffeaea",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderColor: "#f5c2c2",
+  },
+
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
     marginBottom: 12,
   },
+
   title: {
-    fontSize: 20,
-    fontWeight: "600",
+    fontSize: 22,
+    fontWeight: "700",
     color: "#2b2d42",
   },
+
+  overdueTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#b00020",
+    marginBottom: 12,
+  },
+
   actionText: {
     color: "#ff8c42",
     fontWeight: "600",
-    fontSize: 16,
   },
+
   emptyText: {
     fontStyle: "italic",
     color: "#555",
