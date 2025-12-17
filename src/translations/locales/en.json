@@ -137,5 +137,6 @@
   "reset_failed": "Failed to send reset email",
   "too_many_requests": "Too many requests. Please wait before trying again.",
   "email_required": "Email is required",
-  "login_credentials_required": "Email and password are required"
+  "login_credentials_required": "Email and password are required",
+  "overdue_tasks": "Overdue tasks"
 }

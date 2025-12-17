@@ -14,8 +14,9 @@ export interface Task {
   repeat: TaskRepeat | null;
   completed: boolean;
   createdAt: Date;
-  dueDate: Date; 
+  dueDate: Date;
   householdId: string;
   priority?: TaskPriority;
   details?: string;
+  hasSpawnedNext?: boolean;
 }
