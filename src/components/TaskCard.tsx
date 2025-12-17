@@ -5,6 +5,7 @@ import { AppUser } from "../types/User";
 import { Ionicons } from "@expo/vector-icons";
 import TaskDetailsModal from "./TaskDetailsModal";
 import i18n from "../translations/i18n";
+import CompleteButton from "./CompleteButton";
 interface Props {
   task: Task;
   members: AppUser[];
@@ -47,13 +48,10 @@ export default function TaskCard({
         onPress={() => setDetailsVisible(true)}
         activeOpacity={0.9}
       >
-        <TouchableOpacity onPress={onToggleComplete} style={styles.checkbox}>
-          <Ionicons
-            name={task.completed ? "checkmark-circle" : "ellipse-outline"}
-            size={24}
-            color={task.completed ? "#28a745" : "#ccc"}
-          />
-        </TouchableOpacity>
+        <CompleteButton
+          onToggleComplete={onToggleComplete}
+          completed={task.completed}
+        />
 
         <View style={styles.info}>
           <Text style={[styles.title, task.completed && styles.completedText]}>

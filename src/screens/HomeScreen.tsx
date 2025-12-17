@@ -224,9 +224,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   title: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: "700",
-    marginBottom: 24,
+    marginBottom: 10,
     textAlign: "center",
     color: "#1a1a2e",
   },
