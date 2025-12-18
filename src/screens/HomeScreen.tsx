@@ -12,29 +12,32 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase/firebaseConfig";
 import { collection, doc, onSnapshot, getDoc } from "firebase/firestore";
+
 import TaskCard from "../components/TaskCard";
 import TaskModal from "../components/TaskModal";
-import { Task, TaskPriority } from "../types/Task";
+
+import { Task } from "../types/Task";
 import { AppUser } from "../types/User";
+
 import { handleToggleCompleteTask } from "../utils/handleToggleComplete";
 import { deleteTaskWithCleanup } from "../utils/deleteTask";
+
 import i18n from "../translations/i18n";
 import { useLanguage } from "../context/LanguageContext";
 
-const priorityOrder: Record<NonNullable<TaskPriority>, number> = {
-  high: 0,
-  medium: 1,
-  low: 2,
-};
+import { shouldShowTask, sortByPriorityAndDate } from "../utils/taskRules";
 
 export default function HomeScreen({ navigation }: any) {
-  const { language } = useLanguage();
   const { user } = useAuth();
+  const { language } = useLanguage();
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [members, setMembers] = useState<AppUser[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // ---------------- FETCH TASKS ----------------
 
   useEffect(() => {
     if (!user) return navigation.replace("Login");
@@ -74,7 +77,9 @@ export default function HomeScreen({ navigation }: any) {
     };
 
     fetchTasksForHousehold();
-  }, []);
+  }, [user]);
+
+  // ---------------- LOAD MEMBERS ----------------
 
   useEffect(() => {
     const loadMembers = async () => {
@@ -89,8 +94,11 @@ export default function HomeScreen({ navigation }: any) {
       );
       setMembers(results.filter(Boolean) as AppUser[]);
     };
+
     if (tasks.length > 0) loadMembers();
   }, [tasks]);
+
+  // ---------------- ACTIONS ----------------
 
   const toggleComplete = async (task: Task) => {
     try {
@@ -122,42 +130,51 @@ export default function HomeScreen({ navigation }: any) {
     setShowModal(true);
   };
 
-  const today = new Date();
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay());
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 6);
+  // ---------------- DATE BOUNDARIES (CRITICAL FIX) ----------------
 
-  const todayTasks = tasks.filter((t) => {
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+
+  const startOfTomorrow = new Date(startOfToday);
+  startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+
+  const endOfWeek = new Date(startOfToday);
+  endOfWeek.setDate(startOfToday.getDate() + (7 - startOfToday.getDay()));
+  endOfWeek.setHours(23, 59, 59, 999);
+
+  // ---------------- DOMAIN LOGIC ----------------
+
+  const visibleTasks = tasks.filter(shouldShowTask);
+
+  const todayTasks = visibleTasks.filter((t) => {
     const due =
       t.dueDate instanceof Date ? t.dueDate : (t.dueDate as any).toDate();
-    return due.toDateString() === today.toDateString();
+    return due >= startOfToday && due < startOfTomorrow;
   });
 
-  const weekTasks = tasks.filter((t) => {
+  const weekTasks = visibleTasks.filter((t) => {
     const due =
       t.dueDate instanceof Date ? t.dueDate : (t.dueDate as any).toDate();
-    return due > today && due <= endOfWeek;
+    return due >= startOfTomorrow && due <= endOfWeek;
   });
 
-  const upcomingTasks = tasks.filter((t) => {
+  const upcomingTasks = visibleTasks.filter((t) => {
     const due =
       t.dueDate instanceof Date ? t.dueDate : (t.dueDate as any).toDate();
     return due > endOfWeek;
   });
 
+  // ---------------- RENDER ----------------
+
   const renderGroup = (label: string, group: Task[]) => (
     <View style={styles.taskGroupCard}>
       <Text style={styles.groupTitle}>{label}</Text>
+
       {group.length === 0 ? (
         <Text style={styles.emptyText}>{i18n.t("no_tasks")}</Text>
       ) : (
         group
-          .sort((a, b) => {
-            const aRank = a.priority ? priorityOrder[a.priority] : 3;
-            const bRank = b.priority ? priorityOrder[b.priority] : 3;
-            return aRank - bRank;
-          })
+          .sort(sortByPriorityAndDate)
           .map((task) => (
             <TaskCard
               key={task.id}
@@ -187,6 +204,7 @@ export default function HomeScreen({ navigation }: any) {
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
           <Text style={styles.title}>{i18n.t("your_cleaning_tasks")}</Text>
+
           {renderGroup(i18n.t("today"), todayTasks)}
           {renderGroup(i18n.t("this_week"), weekTasks)}
           {renderGroup(i18n.t("upcoming"), upcomingTasks)}
@@ -195,6 +213,7 @@ export default function HomeScreen({ navigation }: any) {
         <TaskModal
           visible={showModal}
           onClose={() => setShowModal(false)}
+          task={selectedTask}
           household={{
             id: selectedTask?.householdId ?? "",
             name: "",
@@ -202,7 +221,6 @@ export default function HomeScreen({ navigation }: any) {
             ownerId: "",
             members: [],
           }}
-          task={selectedTask}
           members={members}
         />
       </SafeAreaView>
@@ -210,19 +228,13 @@ export default function HomeScreen({ navigation }: any) {
   );
 }
 
+// ---------------- STYLES ----------------
+
 const styles = StyleSheet.create({
-  gradient: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  gradient: { flex: 1 },
+  container: { flex: 1, padding: 16 },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+
   title: {
     fontSize: 20,
     fontWeight: "700",
@@ -230,11 +242,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#1a1a2e",
   },
+
   emptyText: {
     fontStyle: "italic",
     color: "#555",
     textAlign: "center",
   },
+
   taskGroupCard: {
     backgroundColor: "#ffffffcc",
     borderRadius: 16,
@@ -246,6 +260,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     marginHorizontal: 16,
   },
+
   groupTitle: {
     fontSize: 20,
     fontWeight: "600",

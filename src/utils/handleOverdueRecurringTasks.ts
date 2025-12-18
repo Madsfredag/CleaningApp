@@ -2,7 +2,7 @@ import { collection, getDocs, updateDoc, doc } from "firebase/firestore";
 import { db } from "../firebase/firebaseConfig";
 import { Task } from "../types/Task";
 import { spawnNextRecurringTaskOnce } from "./spawnNextRecurringTask";
-import { isTaskOverdue } from "./isTaskOverdue";
+import { isTaskOverdue } from "./taskRules";
 
 export async function handleOverdueRecurringTasks(householdId: string) {
   const snap = await getDocs(
