@@ -41,7 +41,9 @@ export default function JoinHouseholdScreen({ navigation }: any) {
       user!.id
     );
     if (householdId) {
-      navigation.replace("MainTabs");
+      navigation.replace("MainTabs", {
+        screen: "ChooseColor",
+      });
     } else {
       setError(i18n.t("household_not_found"));
     }
@@ -108,10 +110,14 @@ export default function JoinHouseholdScreen({ navigation }: any) {
                 </View>
                 <TouchableOpacity
                   style={styles.button}
-                  onPress={() => navigation.navigate("MainTabs")}
+                  onPress={() =>
+                    navigation.navigate("MainTabs", {
+                      screen: "ChooseColor",
+                    })
+                  }
                 >
                   <Text style={styles.buttonText}>
-                    {i18n.t("continue_to_home")}
+                    {i18n.t("continue_to_choose_color")}
                   </Text>
                 </TouchableOpacity>
               </>

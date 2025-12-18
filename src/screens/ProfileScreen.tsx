@@ -61,6 +61,10 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleChangeColor = () => {
+    navigation.navigate("ChooseColor" as never);
+  };
+
   const handleLogout = () => {
     logout();
     navigation.navigate("Login" as never);
@@ -125,6 +129,13 @@ export default function ProfileScreen() {
               onPress={() => setEditVisible(true)}
             >
               <Text style={styles.btnText}>{i18n.t("edit_profile")}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.colorBtn}
+              onPress={handleChangeColor}
+            >
+              <Text style={styles.btnText}>{i18n.t("change_task_color")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
@@ -241,6 +252,12 @@ const styles = StyleSheet.create({
   },
   editBtn: {
     backgroundColor: "#4e89ae",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  colorBtn: {
+    backgroundColor: "#3a22f4ff", // neutral but distinct
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: "center",

@@ -72,6 +72,7 @@
   "scan_qr_to_join": "Scan QR to Join",
   "share_qr": "Share this QR Code",
   "code": "Code",
+  "continue_to_choose_color": "Continue to Choose Color",
   "continue_to_home": "Continue to Home",
   "enter_household_name": "Enter a household name",
   "create_household_error": "Could not create household",
@@ -139,5 +140,6 @@
   "too_many_requests": "Too many requests. Please wait before trying again.",
   "email_required": "Email is required",
   "login_credentials_required": "Email and password are required",
-  "overdue_tasks": "Overdue tasks"
+  "overdue_tasks": "Overdue tasks",
+  "change_task_color": "Change task color"
 }

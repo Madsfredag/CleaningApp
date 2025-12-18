@@ -7,6 +7,8 @@ import CompletedTasksScreen from "../screens/CompletedTasksScreen";
 import { Ionicons } from "@expo/vector-icons";
 import i18n from "../translations/i18n";
 import { useLanguage } from "../context/LanguageContext";
+import ChooseColorScreen from "../screens/ChooseColorScreen";
+
 const Tab = createBottomTabNavigator();
 
 export default function BottomTabs() {
@@ -16,7 +18,11 @@ export default function BottomTabs() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: "#ff8c42",
-        tabBarInactiveTintColor: "#888",
+        tabBarInactiveTintColor: "#424141ff",
+        tabBarStyle: {
+          height: 65,
+          paddingBottom: 5,
+        },
         tabBarIcon: ({ color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap = "home";
           if (route.name === "Home") iconName = "home";
@@ -39,6 +45,13 @@ export default function BottomTabs() {
       <Tab.Screen name="Household" component={HouseholdScreen} />
       <Tab.Screen name="Completed" component={CompletedTasksScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen
+        name="ChooseColor"
+        component={ChooseColorScreen}
+        options={{
+          tabBarItemStyle: { display: "none" },
+        }}
+      />
     </Tab.Navigator>
   );
 }

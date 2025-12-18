@@ -6,12 +6,14 @@ import { Ionicons } from "@expo/vector-icons";
 import TaskDetailsModal from "./TaskDetailsModal";
 import i18n from "../translations/i18n";
 import CompleteButton from "./CompleteButton";
+
 interface Props {
   task: Task;
   members: AppUser[];
   onEdit: () => void;
   onDelete: () => void;
   onToggleComplete: () => void;
+  backgroundColor?: string;
 }
 
 export default function TaskCard({
@@ -20,6 +22,7 @@ export default function TaskCard({
   onEdit,
   onDelete,
   onToggleComplete,
+  backgroundColor,
 }: Props) {
   const [detailsVisible, setDetailsVisible] = useState(false);
   const assignedUser = members.find((m) => m.id === task.assignedTo);
@@ -44,7 +47,13 @@ export default function TaskCard({
   return (
     <>
       <TouchableOpacity
-        style={[styles.card, { borderLeftColor: priorityColor }]}
+        style={[
+          styles.card,
+          {
+            borderLeftColor: priorityColor,
+            backgroundColor: backgroundColor ?? "#fff",
+          },
+        ]}
         onPress={() => setDetailsVisible(true)}
         activeOpacity={0.9}
       >
@@ -90,51 +99,64 @@ export default function TaskCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 10,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+
     flexDirection: "row",
     alignItems: "center",
+
+    borderLeftWidth: 10,
+
+    backgroundColor: "#ffffff",
+
     shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
-    borderLeftWidth: 6,
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
   },
-  checkbox: {
-    marginRight: 12,
-  },
+
   info: {
     flex: 1,
   },
+
   title: {
     fontSize: 16,
-    fontWeight: "500",
-    color: "#2b2d42",
+    fontWeight: "700",
+    color: "#000000ff", // near-black, modern
   },
+
   meta: {
-    fontSize: 12,
-    color: "#555",
-    marginTop: 2,
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#000000ff",
+    marginTop: 4,
   },
+
   assigned: {
     fontSize: 12,
-    color: "#777",
+    fontWeight: "500",
+    color: "#000000ff",
     marginTop: 2,
   },
+
   completedText: {
     textDecorationLine: "line-through",
-    color: "#aaa",
+    color: "#424040ff",
   },
+
   actions: {
     flexDirection: "row",
-    gap: 8,
+    alignItems: "center",
+    marginLeft: 8,
   },
+
   editBtn: {
-    marginHorizontal: 6,
+    padding: 6,
   },
+
   deleteBtn: {
-    marginHorizontal: 6,
+    padding: 6,
   },
 });

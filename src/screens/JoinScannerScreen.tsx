@@ -56,7 +56,7 @@ export default function JoinScannerScreen() {
           {
             text: i18n.t("ok"),
             onPress: () => {
-              navigation.navigate("MainTabs" as never);
+              navigation.navigate("ChooseColor" as never);
             },
           },
         ]);

@@ -72,6 +72,7 @@
   "scan_qr_to_join": "Scan QR for at tilslutte",
   "share_qr": "Del denne QR-kode",
   "code": "Kode",
+  "continue_to_choose_color": "Fortsæt til valg af farve",
   "continue_to_home": "Fortsæt til startside",
   "enter_household_name": "Indtast et husstandsnavn",
   "create_household_error": "Kunne ikke oprette husstand",
@@ -139,5 +140,6 @@
   "too_many_requests": "For mange anmodninger. Vent venligst før du prøver igen.",
   "email_required": "Email er påkrævet",
   "login_credentials_required": "Email og adgangskode er påkrævet",
-  "overdue_tasks": "Overskredne opgaver"
+  "overdue_tasks": "Overskredne opgaver",
+  "change_task_color": "Skift husholdningsfarve"
 }
