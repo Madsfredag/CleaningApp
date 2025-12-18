@@ -21,20 +21,29 @@ import {
   getDoc,
   getDocs,
 } from "firebase/firestore";
+
 import MembersCard from "../components/MembersCard";
 import TaskCard from "../components/TaskCard";
 import TaskModal from "../components/TaskModal";
 import QrCodeCard from "../components/QrCodeCard";
+
 import { Household } from "../types/Household";
 import { Task } from "../types/Task";
 import { AppUser } from "../types/User";
+
 import { archiveOldCompletedTasks } from "../utils/archiveOldCompletedTasks";
 import { handleToggleCompleteTask } from "../utils/handleToggleComplete";
 import { deleteTaskWithCleanup } from "../utils/deleteTask";
 import { handleOverdueRecurringTasks } from "../utils/handleOverdueRecurringTasks";
+
 import i18n from "../translations/i18n";
 import { useLanguage } from "../context/LanguageContext";
-import { isTaskOverdue } from "../utils/isTaskOverdue";
+
+import {
+  shouldShowTask,
+  sortByPriorityAndDate,
+  isTaskOverdue,
+} from "../utils/taskRules";
 
 export default function HouseholdScreen() {
   const { user } = useAuth();
@@ -46,6 +55,8 @@ export default function HouseholdScreen() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showModal, setShowModal] = useState(false);
 
+  // ---------------- FETCH HOUSEHOLD ----------------
+
   useEffect(() => {
     if (!user) return;
 
@@ -54,6 +65,7 @@ export default function HouseholdScreen() {
         collection(db, "households"),
         where("members", "array-contains", user.id)
       );
+
       const snap = await getDocs(q);
       if (snap.empty) return;
 
@@ -71,13 +83,15 @@ export default function HouseholdScreen() {
 
       setupListeners(householdId);
 
-      // background maintenance
+      // background maintenance (safe & deterministic)
       await archiveOldCompletedTasks(householdId);
       await handleOverdueRecurringTasks(householdId);
     };
 
     fetchHousehold();
   }, [user]);
+
+  // ---------------- REALTIME LISTENERS ----------------
 
   const setupListeners = (householdId: string) => {
     const taskRef = collection(db, "households", householdId, "tasks");
@@ -116,6 +130,8 @@ export default function HouseholdScreen() {
     };
   };
 
+  // ---------------- ACTIONS ----------------
+
   const handleEdit = (task: Task) => {
     setSelectedTask(task);
     setShowModal(true);
@@ -151,6 +167,8 @@ export default function HouseholdScreen() {
     }
   };
 
+  // ---------------- LOADING ----------------
+
   if (!user || !household) {
     return (
       <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
@@ -161,11 +179,20 @@ export default function HouseholdScreen() {
     );
   }
 
-  // ---------- UI grouping ----------
+  // ---------------- DOMAIN LOGIC (THE IMPORTANT PART) ----------------
 
-  const overdueTasks = tasks.filter((t) => !t.completed && isTaskOverdue(t));
+  // 1️⃣ Only tasks that should be visible today
+  const visibleTasks = tasks.filter(shouldShowTask);
 
-  const normalTasks = tasks.filter((t) => !overdueTasks.includes(t));
+  // 2️⃣ Overdue = visible + not completed + overdue
+  const overdueTasks = visibleTasks
+    .filter((t) => !t.completed && isTaskOverdue(t))
+    .sort(sortByPriorityAndDate);
+
+  // 3️⃣ Normal = visible + not overdue
+  const normalTasks = visibleTasks
+    .filter((t) => !isTaskOverdue(t))
+    .sort(sortByPriorityAndDate);
 
   const renderTaskList = (list: Task[]) =>
     list.map((task) => (
@@ -179,6 +206,8 @@ export default function HouseholdScreen() {
       />
     ));
 
+  // ---------------- UI ----------------
+
   return (
     <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
       <SafeAreaView style={styles.container}>
@@ -186,7 +215,7 @@ export default function HouseholdScreen() {
           <Text style={styles.houseHoldTitle}>
             {i18n.t("household_cleaning_tasks")}
           </Text>
-          {/* OVERDUE */}
+
           {overdueTasks.length > 0 && (
             <View style={styles.overdueCard}>
               <Text style={styles.overdueTitle}>{i18n.t("overdue_tasks")}</Text>
@@ -194,7 +223,6 @@ export default function HouseholdScreen() {
             </View>
           )}
 
-          {/* NORMAL TASKS */}
           <View style={styles.card}>
             <View style={styles.headerRow}>
               <Text style={styles.title}>{i18n.t("tasks")}</Text>
@@ -226,6 +254,8 @@ export default function HouseholdScreen() {
   );
 }
 
+// ---------------- STYLES ----------------
+
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
   container: { flex: 1, marginTop: -16 },
@@ -244,7 +274,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    borderColor: "#f5c2c2",
   },
 
   headerRow: {
