@@ -16,37 +16,48 @@ import {
   query,
   where,
   doc,
-  getDoc,
+  onSnapshot,
 } from "firebase/firestore";
+
 import { Task } from "../types/Task";
-import { AppUser } from "../types/User";
-import TaskCard from "../components/TaskCard";
+
 import i18n from "../translations/i18n";
 import { useLanguage } from "../context/LanguageContext";
 import ReadonlyTaskCard from "../components/ReadOnlyTaskCard";
 
+import { useHouseholdMembers } from "../hooks/useHouseholdMembers";
+
 export default function CompletedTasksScreen() {
   const { language } = useLanguage();
   const { user } = useAuth();
+
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [members, setMembers] = useState<AppUser[]>([]);
+  const [householdId, setHouseholdId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const members = useHouseholdMembers(householdId);
+
+  // ---------------- FETCH HOUSEHOLD ID ----------------
 
   useEffect(() => {
     if (!user) return;
 
+    const unsub = onSnapshot(doc(db, "users", user.id), (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      setHouseholdId(data.householdId ?? null);
+    });
+
+    return () => unsub();
+  }, [user]);
+
+  // ---------------- FETCH ARCHIVED TASKS ----------------
+
+  useEffect(() => {
+    if (!user || !householdId) return;
+
     const fetchArchivedTasks = async () => {
       try {
-        const q = query(
-          collection(db, "households"),
-          where("members", "array-contains", user.id)
-        );
-        const snap = await getDocs(q);
-        if (snap.empty) return;
-
-        const householdDoc = snap.docs[0];
-        const householdId = householdDoc.id;
-
         const archivedSnap = await getDocs(
           collection(db, "households", householdId, "history")
         );
@@ -55,6 +66,7 @@ export default function CompletedTasksScreen() {
           (docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Task)
         );
 
+        // newest first
         loadedTasks.sort((a, b) => {
           const aDate =
             a.dueDate instanceof Date ? a.dueDate : (a.dueDate as any).toDate();
@@ -64,23 +76,6 @@ export default function CompletedTasksScreen() {
         });
 
         setTasks(loadedTasks);
-
-        const memberIds = [
-          ...new Set(loadedTasks.map((t) => t.assignedTo).filter(Boolean)),
-        ];
-        const userDocs = await Promise.all(
-          memberIds.map(async (uid) => {
-            if (!uid) return null;
-            const userRef = doc(db, "users", uid);
-            const userDoc = await getDoc(userRef);
-            if (!userDoc.exists()) return null;
-            return {
-              id: userDoc.id,
-              ...(userDoc.data() as Omit<AppUser, "id">),
-            };
-          })
-        );
-        setMembers(userDocs.filter(Boolean) as AppUser[]);
       } catch (err) {
         console.error("Error loading archived tasks:", err);
       } finally {
@@ -89,7 +84,15 @@ export default function CompletedTasksScreen() {
     };
 
     fetchArchivedTasks();
-  }, [user]);
+  }, [user, householdId]);
+
+  // ---------------- COLOR MAP ----------------
+
+  const memberColorMap = Object.fromEntries(
+    members.filter((m) => m.taskColor).map((m) => [m.id, m.taskColor!])
+  );
+
+  // ---------------- LOADING ----------------
 
   if (loading) {
     return (
@@ -101,6 +104,8 @@ export default function CompletedTasksScreen() {
     );
   }
 
+  // ---------------- UI ----------------
+
   return (
     <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
       <SafeAreaView style={styles.container}>
@@ -109,13 +114,23 @@ export default function CompletedTasksScreen() {
             <Text style={styles.title}>
               {i18n.t("completed_cleaning_tasks")}
             </Text>
+
             {tasks.length === 0 ? (
               <Text style={styles.emptyText}>
                 {i18n.t("no_archived_tasks")}
               </Text>
             ) : (
               tasks.map((task) => (
-                <ReadonlyTaskCard key={task.id} task={task} members={members} />
+                <ReadonlyTaskCard
+                  key={task.id}
+                  task={task}
+                  members={members}
+                  backgroundColor={
+                    task.assignedTo
+                      ? memberColorMap[task.assignedTo] ?? "#fff"
+                      : "#fff"
+                  }
+                />
               ))
             )}
           </View>
@@ -124,6 +139,8 @@ export default function CompletedTasksScreen() {
     </LinearGradient>
   );
 }
+
+// ---------------- STYLES ----------------
 
 const styles = StyleSheet.create({
   gradient: {
@@ -151,6 +168,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontStyle: "italic",
     color: "#555",
+    textAlign: "center",
   },
   card: {
     backgroundColor: "#ffffffcc",

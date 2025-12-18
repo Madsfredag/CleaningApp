@@ -52,8 +52,8 @@ export default function CompleteButton({ completed, onToggleComplete }: Props) {
       <TouchableOpacity onPress={handlePress} style={styles.checkbox}>
         <Ionicons
           name={completed ? "checkmark-circle" : "ellipse-outline"}
-          size={24}
-          color={completed ? "#28a745" : "#ccc"}
+          size={30}
+          color={completed ? "#28a745" : "#4e4c4cff"}
         />
       </TouchableOpacity>
     </>
@@ -70,6 +70,7 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   checkbox: {
-    padding: 4,
+    padding: 0,
+    marginRight: 12,
   },
 });

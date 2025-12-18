@@ -6,4 +6,5 @@ export interface AppUser {
   householdId?: string | null;
   points?: number;
   pushToken?: string | null;
+  taskColor?: string;
 }

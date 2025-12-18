@@ -9,9 +9,14 @@ import i18n from "../translations/i18n";
 interface Props {
   task: Task;
   members: AppUser[];
+  backgroundColor?: string;
 }
 
-export default function ReadonlyTaskCard({ task, members }: Props) {
+export default function ReadonlyTaskCard({
+  task,
+  members,
+  backgroundColor,
+}: Props) {
   const [detailsVisible, setDetailsVisible] = useState(false);
   const assignedUser = members.find((m) => m.id === task.assignedTo);
 
@@ -35,9 +40,14 @@ export default function ReadonlyTaskCard({ task, members }: Props) {
   return (
     <>
       <TouchableOpacity
-        style={[styles.card, { borderLeftColor: priorityColor }]}
+        style={[
+          styles.card,
+          {
+            borderLeftColor: priorityColor,
+            backgroundColor: backgroundColor ?? "#fff",
+          },
+        ]}
         onPress={() => setDetailsVisible(true)}
-        activeOpacity={0.9}
       >
         <View style={styles.checkbox}>
           <Ionicons
@@ -95,21 +105,19 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontWeight: "500",
-    color: "#2b2d42",
+    fontWeight: "700",
+    color: "#000000ff", // near-black, modern
   },
   meta: {
-    fontSize: 12,
-    color: "#555",
-    marginTop: 2,
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#000000ff",
+    marginTop: 4,
   },
   assigned: {
     fontSize: 12,
-    color: "#777",
+    fontWeight: "500",
+    color: "#000000ff",
     marginTop: 2,
-  },
-  completedText: {
-    textDecorationLine: "line-through",
-    color: "#aaa",
   },
 });

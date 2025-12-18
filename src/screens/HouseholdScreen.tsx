@@ -14,22 +14,18 @@ import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase/firebaseConfig";
 import {
   collection,
-  doc,
   onSnapshot,
   query,
   where,
-  getDoc,
   getDocs,
 } from "firebase/firestore";
 
-import MembersCard from "../components/MembersCard";
 import TaskCard from "../components/TaskCard";
 import TaskModal from "../components/TaskModal";
 import QrCodeCard from "../components/QrCodeCard";
 
 import { Household } from "../types/Household";
 import { Task } from "../types/Task";
-import { AppUser } from "../types/User";
 
 import { archiveOldCompletedTasks } from "../utils/archiveOldCompletedTasks";
 import { handleToggleCompleteTask } from "../utils/handleToggleComplete";
@@ -45,15 +41,18 @@ import {
   isTaskOverdue,
 } from "../utils/taskRules";
 
+import { useHouseholdMembers } from "../hooks/useHouseholdMembers";
+
 export default function HouseholdScreen() {
   const { user } = useAuth();
   const { language } = useLanguage();
 
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [members, setMembers] = useState<AppUser[]>([]);
   const [household, setHousehold] = useState<Household | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showModal, setShowModal] = useState(false);
+
+  const members = useHouseholdMembers(household?.id ?? null);
 
   // ---------------- FETCH HOUSEHOLD ----------------
 
@@ -70,65 +69,40 @@ export default function HouseholdScreen() {
       if (snap.empty) return;
 
       const householdDoc = snap.docs[0];
-      const householdId = householdDoc.id;
       const data = householdDoc.data();
 
       setHousehold({
-        id: householdId,
+        id: householdDoc.id,
         name: data.name,
         code: data.code,
         ownerId: data.ownerId,
         members: data.members,
       });
 
-      setupListeners(householdId);
-
-      // background maintenance (safe & deterministic)
-      await archiveOldCompletedTasks(householdId);
-      await handleOverdueRecurringTasks(householdId);
+      // background maintenance
+      await archiveOldCompletedTasks(householdDoc.id);
+      await handleOverdueRecurringTasks(householdDoc.id);
     };
 
     fetchHousehold();
   }, [user]);
 
-  // ---------------- REALTIME LISTENERS ----------------
+  // ---------------- TASK LISTENER ----------------
 
-  const setupListeners = (householdId: string) => {
-    const taskRef = collection(db, "households", householdId, "tasks");
+  useEffect(() => {
+    if (!household?.id) return;
 
-    const unsubscribeTasks = onSnapshot(taskRef, (snap) => {
+    const taskRef = collection(db, "households", household.id, "tasks");
+
+    const unsub = onSnapshot(taskRef, (snap) => {
       const loadedTasks = snap.docs.map(
         (d) => ({ id: d.id, ...d.data() } as Task)
       );
       setTasks(loadedTasks);
     });
 
-    const unsubscribeHousehold = onSnapshot(
-      doc(db, "households", householdId),
-      async (docSnap) => {
-        const data = docSnap.data();
-        if (!data?.members) return;
-
-        const userDocs = await Promise.all(
-          data.members.map(async (uid: string) => {
-            const userDoc = await getDoc(doc(db, "users", uid));
-            if (!userDoc.exists()) return null;
-            return {
-              id: userDoc.id,
-              ...(userDoc.data() as Omit<AppUser, "id">),
-            };
-          })
-        );
-
-        setMembers(userDocs.filter(Boolean) as AppUser[]);
-      }
-    );
-
-    return () => {
-      unsubscribeTasks();
-      unsubscribeHousehold();
-    };
-  };
+    return () => unsub();
+  }, [household?.id]);
 
   // ---------------- ACTIONS ----------------
 
@@ -179,17 +153,20 @@ export default function HouseholdScreen() {
     );
   }
 
-  // ---------------- DOMAIN LOGIC (THE IMPORTANT PART) ----------------
+  // ---------------- COLOR MAP ----------------
 
-  // 1️⃣ Only tasks that should be visible today
+  const memberColorMap = Object.fromEntries(
+    members.filter((m) => m.taskColor).map((m) => [m.id, m.taskColor!])
+  );
+
+  // ---------------- DOMAIN LOGIC ----------------
+
   const visibleTasks = tasks.filter(shouldShowTask);
 
-  // 2️⃣ Overdue = visible + not completed + overdue
   const overdueTasks = visibleTasks
     .filter((t) => !t.completed && isTaskOverdue(t))
     .sort(sortByPriorityAndDate);
 
-  // 3️⃣ Normal = visible + not overdue
   const normalTasks = visibleTasks
     .filter((t) => !isTaskOverdue(t))
     .sort(sortByPriorityAndDate);
@@ -203,6 +180,9 @@ export default function HouseholdScreen() {
         onEdit={() => handleEdit(task)}
         onDelete={() => handleDelete(task)}
         onToggleComplete={() => toggleComplete(task)}
+        backgroundColor={
+          task.assignedTo ? memberColorMap[task.assignedTo] ?? "#fff" : "#fff"
+        }
       />
     ));
 
@@ -239,7 +219,26 @@ export default function HouseholdScreen() {
           </View>
 
           <QrCodeCard household={household} />
-          <MembersCard members={members} />
+
+          <View style={styles.membersCard}>
+            <Text style={styles.membersTitle}>
+              {i18n.t("household_members")}
+            </Text>
+
+            {members.map((m) => (
+              <View key={m.id} style={styles.memberRow}>
+                <View
+                  style={[
+                    styles.colorDot,
+                    { backgroundColor: m.taskColor ?? "#ccc" },
+                  ]}
+                />
+                <Text style={styles.memberName}>
+                  {m.displayName || m.email}
+                </Text>
+              </View>
+            ))}
+          </View>
         </ScrollView>
 
         <TaskModal
@@ -311,5 +310,37 @@ const styles = StyleSheet.create({
   emptyText: {
     fontStyle: "italic",
     color: "#555",
+  },
+
+  membersCard: {
+    backgroundColor: "#ffffffcc",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+
+  membersTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    marginBottom: 12,
+    color: "#2b2d42",
+  },
+
+  memberRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+
+  colorDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    marginRight: 10,
+  },
+
+  memberName: {
+    fontSize: 16,
+    color: "#333",
   },
 });

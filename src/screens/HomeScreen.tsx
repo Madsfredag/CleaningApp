@@ -17,7 +17,6 @@ import TaskCard from "../components/TaskCard";
 import TaskModal from "../components/TaskModal";
 
 import { Task } from "../types/Task";
-import { AppUser } from "../types/User";
 
 import { handleToggleCompleteTask } from "../utils/handleToggleComplete";
 import { deleteTaskWithCleanup } from "../utils/deleteTask";
@@ -27,76 +26,71 @@ import { useLanguage } from "../context/LanguageContext";
 
 import { shouldShowTask, sortByPriorityAndDate } from "../utils/taskRules";
 
+import { useHouseholdMembers } from "../hooks/useHouseholdMembers";
+
 export default function HomeScreen({ navigation }: any) {
   const { user } = useAuth();
   const { language } = useLanguage();
 
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [members, setMembers] = useState<AppUser[]>([]);
+  const [householdId, setHouseholdId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const members = useHouseholdMembers(householdId);
+
+  // ---------------- FETCH HOUSEHOLD ID ----------------
+
+  useEffect(() => {
+    if (!user) {
+      navigation.replace("Login");
+      return;
+    }
+
+    const unsub = onSnapshot(doc(db, "users", user.id), (snap) => {
+      if (!snap.exists()) return;
+
+      const data = snap.data();
+      setHouseholdId(data.householdId ?? null);
+    });
+
+    return () => unsub();
+  }, [user]);
+
   // ---------------- FETCH TASKS ----------------
 
   useEffect(() => {
-    if (!user) return navigation.replace("Login");
+    if (!user || !householdId) return navigation.replace("Login");
 
-    const fetchTasksForHousehold = async () => {
-      const userDoc = await getDoc(doc(db, "users", user.id));
-      if (!userDoc.exists()) return;
+    const taskRef = collection(db, "households", householdId, "tasks");
 
-      const userData = userDoc.data() as AppUser;
-      const householdId = userData.householdId;
-      if (!householdId) return;
+    const unsub = onSnapshot(taskRef, (snap) => {
+      const loadedTasks: Task[] = snap.docs
+        .map((docSnap) => ({
+          ...(docSnap.data() as Omit<Task, "id">),
+          id: docSnap.id,
+          householdId,
+        }))
+        .filter(
+          (task) =>
+            task.assignedTo === user.id ||
+            task.assignedTo === null ||
+            task.assignedTo === ""
+        );
 
-      const taskRef = collection(db, "households", householdId, "tasks");
+      setTasks(loadedTasks);
+      setLoading(false);
+    });
 
-      const unsub = onSnapshot(taskRef, (snap) => {
-        const loadedTasks: Task[] = snap.docs
-          .map((docSnap) => {
-            const data = docSnap.data();
-            return {
-              ...(data as Omit<Task, "id">),
-              id: docSnap.id,
-              householdId,
-            };
-          })
-          .filter(
-            (task) =>
-              task.assignedTo === user.id ||
-              task.assignedTo === null ||
-              task.assignedTo === ""
-          );
+    return () => unsub();
+  }, [user, householdId]);
 
-        setTasks(loadedTasks);
-        setLoading(false);
-      });
+  // ---------------- COLOR MAP ----------------
 
-      return () => unsub();
-    };
-
-    fetchTasksForHousehold();
-  }, [user]);
-
-  // ---------------- LOAD MEMBERS ----------------
-
-  useEffect(() => {
-    const loadMembers = async () => {
-      const ids = [...new Set(tasks.map((t) => t.assignedTo).filter(Boolean))];
-      const results = await Promise.all(
-        ids.map(async (uid) => {
-          const docSnap = await getDoc(doc(db, "users", uid!));
-          if (!docSnap.exists()) return null;
-          const data = docSnap.data() as Omit<AppUser, "id">;
-          return { ...data, id: uid! };
-        })
-      );
-      setMembers(results.filter(Boolean) as AppUser[]);
-    };
-
-    if (tasks.length > 0) loadMembers();
-  }, [tasks]);
+  const memberColorMap = Object.fromEntries(
+    members.filter((m) => m.taskColor).map((m) => [m.id, m.taskColor!])
+  );
 
   // ---------------- ACTIONS ----------------
 
@@ -130,7 +124,7 @@ export default function HomeScreen({ navigation }: any) {
     setShowModal(true);
   };
 
-  // ---------------- DATE BOUNDARIES (CRITICAL FIX) ----------------
+  // ---------------- DATE BOUNDARIES ----------------
 
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
@@ -183,11 +177,18 @@ export default function HomeScreen({ navigation }: any) {
               onEdit={() => handleEdit(task)}
               onDelete={() => handleDelete(task)}
               onToggleComplete={() => toggleComplete(task)}
+              backgroundColor={
+                task.assignedTo
+                  ? memberColorMap[task.assignedTo] ?? "#fff"
+                  : "#fff"
+              }
             />
           ))
       )}
     </View>
   );
+
+  // ---------------- LOADING ----------------
 
   if (loading) {
     return (
@@ -198,6 +199,8 @@ export default function HomeScreen({ navigation }: any) {
       </LinearGradient>
     );
   }
+
+  // ---------------- UI ----------------
 
   return (
     <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
@@ -231,8 +234,8 @@ export default function HomeScreen({ navigation }: any) {
 // ---------------- STYLES ----------------
 
 const styles = StyleSheet.create({
-  gradient: { flex: 1 },
-  container: { flex: 1, padding: 16 },
+  gradient: { flex: 1, height: "100%" },
+  container: { flex: 1, height: "100%" },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
 
   title: {
