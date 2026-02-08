@@ -53,7 +53,7 @@ export default function ProfileScreen() {
         displayName: displayName.trim(),
       });
       setAppUser((prev) =>
-        prev ? { ...prev, displayName: displayName.trim() } : prev
+        prev ? { ...prev, displayName: displayName.trim() } : prev,
       );
       setEditVisible(false);
     } catch {
@@ -93,7 +93,10 @@ export default function ProfileScreen() {
 
   if (!user || loading || !appUser) {
     return (
-      <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
+      <LinearGradient
+        colors={["#acbdacff", "#4d4f4fff"]}
+        style={styles.gradient}
+      >
         <SafeAreaView style={styles.centered}>
           <ActivityIndicator size="large" />
         </SafeAreaView>
@@ -102,7 +105,7 @@ export default function ProfileScreen() {
   }
 
   return (
-    <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
+    <LinearGradient colors={["#adccafff", "#4d4f4fff"]} style={styles.gradient}>
       <SafeAreaView style={styles.container}>
         <View style={styles.card}>
           <Text style={styles.header}>{i18n.t("your_profile")}</Text>
@@ -156,7 +159,7 @@ export default function ProfileScreen() {
                 switchLanguage(newLang);
                 Alert.alert(
                   i18n.t("language_switched"),
-                  i18n.t("current_language") + ": " + newLang.toUpperCase()
+                  i18n.t("current_language") + ": " + newLang.toUpperCase(),
                 );
               }}
             >

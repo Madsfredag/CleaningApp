@@ -43,7 +43,7 @@ export default function SignupScreen({ navigation }: Props) {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
-        password
+        password,
       );
       const uid = userCredential.user.uid;
 
@@ -79,7 +79,7 @@ export default function SignupScreen({ navigation }: Props) {
                 }
               },
             },
-          ]
+          ],
         );
       }
 
@@ -115,12 +115,12 @@ export default function SignupScreen({ navigation }: Props) {
     switchLanguage(nextLang);
     Alert.alert(
       i18n.t("language_switched"),
-      `${i18n.t("current_language")}: ${nextLang}`
+      `${i18n.t("current_language")}: ${nextLang}`,
     );
   };
 
   return (
-    <LinearGradient colors={["#c2e9fb", "#a1c4fd"]} style={styles.gradient}>
+    <LinearGradient colors={["#4d4f4fff", "#acbdacff"]} style={styles.gradient}>
       <SafeAreaView style={styles.container}>
         <Text style={styles.title}>{i18n.t("create_account")}</Text>
 

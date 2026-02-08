@@ -141,5 +141,8 @@
   "email_required": "Email er påkrævet",
   "login_credentials_required": "Email og adgangskode er påkrævet",
   "overdue_tasks": "Overskredne opgaver",
-  "change_task_color": "Skift husholdningsfarve"
+  "change_task_color": "Skift husholdningsfarve",
+  "choose_your_color": "Vælg din farve",
+  "color_used_on_tasks": "Denne farve bruges på opgaver tildelt dig.",
+  "change_later_in_profile": "Du kan ændre dette senere i din profil."
 }

@@ -53,6 +53,7 @@ export default function HomeScreen({ navigation }: any) {
 
       const data = snap.data();
       setHouseholdId(data.householdId ?? null);
+      setLoading(false); // ✅ add this
     });
 
     return () => unsub();
@@ -61,7 +62,13 @@ export default function HomeScreen({ navigation }: any) {
   // ---------------- FETCH TASKS ----------------
 
   useEffect(() => {
-    if (!user || !householdId) return navigation.replace("Login");
+    if (!user) {
+      navigation.replace("Login");
+      return;
+    }
+
+    // householdId not ready yet (or user not in a household) -> don't navigate from here
+    if (!householdId) return;
 
     const taskRef = collection(db, "households", householdId, "tasks");
 
@@ -76,7 +83,7 @@ export default function HomeScreen({ navigation }: any) {
           (task) =>
             task.assignedTo === user.id ||
             task.assignedTo === null ||
-            task.assignedTo === ""
+            task.assignedTo === "",
         );
 
       setTasks(loadedTasks);
@@ -89,7 +96,7 @@ export default function HomeScreen({ navigation }: any) {
   // ---------------- COLOR MAP ----------------
 
   const memberColorMap = Object.fromEntries(
-    members.filter((m) => m.taskColor).map((m) => [m.id, m.taskColor!])
+    members.filter((m) => m.taskColor).map((m) => [m.id, m.taskColor!]),
   );
 
   // ---------------- ACTIONS ----------------
@@ -179,7 +186,7 @@ export default function HomeScreen({ navigation }: any) {
               onToggleComplete={() => toggleComplete(task)}
               backgroundColor={
                 task.assignedTo
-                  ? memberColorMap[task.assignedTo] ?? "#fff"
+                  ? (memberColorMap[task.assignedTo] ?? "#fff")
                   : "#fff"
               }
             />
@@ -192,7 +199,10 @@ export default function HomeScreen({ navigation }: any) {
 
   if (loading) {
     return (
-      <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
+      <LinearGradient
+        colors={["#acbdacff", "#4d4f4fff"]}
+        style={styles.gradient}
+      >
         <SafeAreaView style={styles.centered}>
           <ActivityIndicator size="large" />
         </SafeAreaView>
@@ -203,7 +213,7 @@ export default function HomeScreen({ navigation }: any) {
   // ---------------- UI ----------------
 
   return (
-    <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
+    <LinearGradient colors={["#acbdacff", "#4d4f4fff"]} style={styles.gradient}>
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
           <Text style={styles.title}>{i18n.t("your_cleaning_tasks")}</Text>

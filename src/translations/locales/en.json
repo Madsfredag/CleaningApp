@@ -141,5 +141,8 @@
   "email_required": "Email is required",
   "login_credentials_required": "Email and password are required",
   "overdue_tasks": "Overdue tasks",
-  "change_task_color": "Change task color"
+  "change_task_color": "Change task color",
+  "choose_your_color": "Choose your color",
+  "color_used_on_tasks": "This color is used on tasks assigned to you.",
+  "change_later_in_profile": "You can change this later in your profile."
 }

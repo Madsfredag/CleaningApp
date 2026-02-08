@@ -55,7 +55,7 @@ export default function LoginScreen({ navigation }: Props) {
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
-        password
+        password,
       );
       const uid = userCredential.user.uid;
 
@@ -119,7 +119,7 @@ export default function LoginScreen({ navigation }: Props) {
       const userCredential = await signInWithEmailAndPassword(
         auth,
         savedEmail,
-        savedPassword
+        savedPassword,
       );
 
       const uid = userCredential.user.uid;
@@ -139,7 +139,7 @@ export default function LoginScreen({ navigation }: Props) {
   };
 
   return (
-    <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
+    <LinearGradient colors={["#acbdacff", "#4d4f4fff"]} style={styles.gradient}>
       <SafeAreaView style={styles.container}>
         <Text style={styles.title}>{i18n.t("welcome_back")}</Text>
         <TextInput
