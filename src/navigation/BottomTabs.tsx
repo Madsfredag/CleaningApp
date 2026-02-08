@@ -17,8 +17,8 @@ export default function BottomTabs() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: "#ff8c42",
-        tabBarInactiveTintColor: "#424141ff",
+        tabBarActiveTintColor: "#030000ff",
+        tabBarInactiveTintColor: "#656363ff",
         tabBarStyle: {
           height: 65,
           paddingBottom: 5,
@@ -35,10 +35,10 @@ export default function BottomTabs() {
           route.name === "Home"
             ? i18n.t("tab_home")
             : route.name === "Household"
-            ? i18n.t("tab_household")
-            : route.name === "Completed"
-            ? i18n.t("tab_completed")
-            : i18n.t("tab_profile"),
+              ? i18n.t("tab_household")
+              : route.name === "Completed"
+                ? i18n.t("tab_completed")
+                : i18n.t("tab_profile"),
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />

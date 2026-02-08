@@ -62,7 +62,7 @@ export default function HouseholdScreen() {
     const fetchHousehold = async () => {
       const q = query(
         collection(db, "households"),
-        where("members", "array-contains", user.id)
+        where("members", "array-contains", user.id),
       );
 
       const snap = await getDocs(q);
@@ -96,7 +96,7 @@ export default function HouseholdScreen() {
 
     const unsub = onSnapshot(taskRef, (snap) => {
       const loadedTasks = snap.docs.map(
-        (d) => ({ id: d.id, ...d.data() } as Task)
+        (d) => ({ id: d.id, ...d.data() }) as Task,
       );
       setTasks(loadedTasks);
     });
@@ -145,7 +145,10 @@ export default function HouseholdScreen() {
 
   if (!user || !household) {
     return (
-      <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
+      <LinearGradient
+        colors={["#acbdacff", "#4d4f4fff"]}
+        style={styles.gradient}
+      >
         <SafeAreaView style={styles.centered}>
           <ActivityIndicator size="large" />
         </SafeAreaView>
@@ -156,7 +159,7 @@ export default function HouseholdScreen() {
   // ---------------- COLOR MAP ----------------
 
   const memberColorMap = Object.fromEntries(
-    members.filter((m) => m.taskColor).map((m) => [m.id, m.taskColor!])
+    members.filter((m) => m.taskColor).map((m) => [m.id, m.taskColor!]),
   );
 
   // ---------------- DOMAIN LOGIC ----------------
@@ -181,7 +184,7 @@ export default function HouseholdScreen() {
         onDelete={() => handleDelete(task)}
         onToggleComplete={() => toggleComplete(task)}
         backgroundColor={
-          task.assignedTo ? memberColorMap[task.assignedTo] ?? "#fff" : "#fff"
+          task.assignedTo ? (memberColorMap[task.assignedTo] ?? "#fff") : "#fff"
         }
       />
     ));
@@ -189,7 +192,7 @@ export default function HouseholdScreen() {
   // ---------------- UI ----------------
 
   return (
-    <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
+    <LinearGradient colors={["#acbdacff", "#4d4f4fff"]} style={styles.gradient}>
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <Text style={styles.houseHoldTitle}>

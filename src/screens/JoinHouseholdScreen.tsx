@@ -38,7 +38,7 @@ export default function JoinHouseholdScreen({ navigation }: any) {
     if (!code.trim()) return setError(i18n.t("enter_code"));
     const householdId = await joinHouseholdByCode(
       code.trim().toUpperCase(),
-      user!.id
+      user!.id,
     );
     if (householdId) {
       navigation.replace("MainTabs", {
@@ -51,7 +51,10 @@ export default function JoinHouseholdScreen({ navigation }: any) {
 
   if (!user) {
     return (
-      <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
+      <LinearGradient
+        colors={["#acbdacff", "#4d4f4fff"]}
+        style={styles.gradient}
+      >
         <SafeAreaView style={styles.centered}>
           <Text>{i18n.t("loading_user")}</Text>
         </SafeAreaView>
@@ -60,7 +63,7 @@ export default function JoinHouseholdScreen({ navigation }: any) {
   }
 
   return (
-    <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
+    <LinearGradient colors={["#acbdacff", "#4d4f4fff"]} style={styles.gradient}>
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.card}>

@@ -6,6 +6,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase/firebaseConfig";
 import TaskColorPicker from "../components/TaskColorPicker";
 import { DEFAULT_TASK_COLOR } from "../utils/taskColors";
+import i18n from "../translations/i18n";
 
 export default function ChooseColorScreen() {
   const { user } = useAuth();
@@ -30,21 +31,19 @@ export default function ChooseColorScreen() {
   };
 
   return (
-    <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
+    <LinearGradient colors={["#acbdacff", "#4d4f4fff"]} style={styles.gradient}>
       <SafeAreaView style={styles.container}>
-        <Text style={styles.title}>Choose your color</Text>
-        <Text style={styles.subtitle}>
-          This color will be used on tasks assigned to you
-        </Text>
+        <Text style={styles.title}>{i18n.t("choose_your_color")}</Text>
+        <Text style={styles.subtitle}>{i18n.t("color_used_on_tasks")}</Text>
 
         <TaskColorPicker
           selected={selected ?? DEFAULT_TASK_COLOR}
           onSelect={saveColor}
         />
 
-        <Text style={styles.hint}>
-          You can change this later in your profile
-        </Text>
+        {!user?.taskColor ? (
+          <Text style={styles.hint}>{i18n.t("change_later_in_profile")}</Text>
+        ) : null}
       </SafeAreaView>
     </LinearGradient>
   );
@@ -71,7 +70,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 12,
-    color: "#666",
+    color: "#fffdfdff",
     marginTop: 16,
     fontStyle: "italic",
   },

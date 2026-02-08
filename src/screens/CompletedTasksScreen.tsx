@@ -59,11 +59,11 @@ export default function CompletedTasksScreen() {
     const fetchArchivedTasks = async () => {
       try {
         const archivedSnap = await getDocs(
-          collection(db, "households", householdId, "history")
+          collection(db, "households", householdId, "history"),
         );
 
         const loadedTasks = archivedSnap.docs.map(
-          (docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Task)
+          (docSnap) => ({ id: docSnap.id, ...docSnap.data() }) as Task,
         );
 
         // newest first
@@ -89,14 +89,17 @@ export default function CompletedTasksScreen() {
   // ---------------- COLOR MAP ----------------
 
   const memberColorMap = Object.fromEntries(
-    members.filter((m) => m.taskColor).map((m) => [m.id, m.taskColor!])
+    members.filter((m) => m.taskColor).map((m) => [m.id, m.taskColor!]),
   );
 
   // ---------------- LOADING ----------------
 
   if (loading) {
     return (
-      <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
+      <LinearGradient
+        colors={["#acbdacff", "#4d4f4fff"]}
+        style={styles.gradient}
+      >
         <SafeAreaView style={styles.centered}>
           <ActivityIndicator size="large" />
         </SafeAreaView>
@@ -107,7 +110,7 @@ export default function CompletedTasksScreen() {
   // ---------------- UI ----------------
 
   return (
-    <LinearGradient colors={["#a1c4fd", "#c2e9fb"]} style={styles.gradient}>
+    <LinearGradient colors={["#acbdacff", "#4d4f4fff"]} style={styles.gradient}>
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.card}>
@@ -127,7 +130,7 @@ export default function CompletedTasksScreen() {
                   members={members}
                   backgroundColor={
                     task.assignedTo
-                      ? memberColorMap[task.assignedTo] ?? "#fff"
+                      ? (memberColorMap[task.assignedTo] ?? "#fff")
                       : "#fff"
                   }
                 />
